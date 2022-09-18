@@ -6,10 +6,10 @@ Here is some debug points from DriverEntryHelper() function, according nvdm.cpp 
 nt!PnpCallDriverEntry+0x47 Вызов точки входа DriverEntryHelper драйвера Операц.системой:
 Функция точки входа <DriverEntryHelper>
  35_nvlddmkm!nvDumpConfig+0xa86c88 <DriverEntryHelper>
- 35_nvlddmkm!nvDumpConfig+0xa8755f 			call    35_nvlddmkm+0x144454
- 35 nvlddmkm+0x144db4 					call    qword ptr [nvlddmkm+0x774698]
-   	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
- 35 nvlddmkm!nvDumpConfig+0xa876aa  call    nvlddmkm!nvDumpConfig+0x22a49c (заполняется) <call cacheBusInfo()>
+  35_nvlddmkm!nvDumpConfig+0xa8755f 			call    35_nvlddmkm+0x144454
+  35 nvlddmkm+0x144db4 					call    qword ptr [nvlddmkm+0x774698]
+  nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+  35 nvlddmkm!nvDumpConfig+0xa876aa  call    nvlddmkm!nvDumpConfig+0x22a49c (заполняется) <call cacheBusInfo()>
  	Функция <void cacheBusInfo()>из nvdm.cpp ..здесь заполняются параметры шины.. и
          =FOR1= nvlddmkm!nvDumpConfig+0x22a501   // nwdm.cpp:2274 for (; i < NumObjects; ++i) {
  		nvlddmkm!nvDumpConfig+0x22a549          call    r10   <getPciInterface > -> <nt!KzLowerIrql> (становится в rsp вся инфа), но в память пока не скинута
