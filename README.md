@@ -2,24 +2,17 @@
 Unfortunatly HCLONE not supported by Win10 and above, i keep trying to find different function to set PCI bandwidth.
 Here is some debug points from DriverEntryHelper() function, according nvdm.cpp file. Driver version 417.35.
 
+
+nt!PnpCallDriverEntry+0x47 Вызов точки входа DriverEntryHelper драйвера Операц.системой:
 Функция точки входа <DriverEntryHelper>
-	
  35_nvlddmkm!nvDumpConfig+0xa86c88 <DriverEntryHelper>
-	
  35_nvlddmkm!nvDumpConfig+0xa8755f 			call    35_nvlddmkm+0x144454
-	
  35 nvlddmkm+0x144db4 					call    qword ptr [nvlddmkm+0x774698]
-	
    	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
-	
  35 nvlddmkm!nvDumpConfig+0xa876aa  call    nvlddmkm!nvDumpConfig+0x22a49c (заполняется) <call cacheBusInfo()>
-	
  	Функция <void cacheBusInfo()>из nvdm.cpp ..здесь заполняются параметры шины.. и
-	
          =FOR1= nvlddmkm!nvDumpConfig+0x22a501   // nwdm.cpp:2274 for (; i < NumObjects; ++i) {
-											
- 		nvlddmkm!nvDumpConfig+0x22a549          call    r10   <getPciInterface > -> <nt!KzLowerIrql> (становится в rsp вся инфа), 
-	          но в память пока не скинута
+ 		nvlddmkm!nvDumpConfig+0x22a549          call    r10   <getPciInterface > -> <nt!KzLowerIrql> (становится в rsp вся инфа), но в память пока не скинута
                           mov     edx,0Eh  -   0Eh это DevicePropertyBusNumber = 0xe из файла <wdm.h>
  			 call    qword ptr [nvlddmkm+0x774608]   nt!IoGetDevicePropert
  				mov     edx,10h  -   10h это DevicePropertyAddress= 0x10 из файла <wdm.h>
@@ -42,19 +35,19 @@ Here is some debug points from DriverEntryHelper() function, according nvdm.cpp 
 
  54адрес:
   <nvdm.cpp:1090-> DriverEntryHelper():g_GlobalData.NvDDICallbacks.DxgkDdiUpdateActiveVidPnPresentPath> Заполнение 54го адреса глобальных Колбеков
-  nvlddmkm!nvDumpConfig+0xa87a22  mov     qword ptr [nvlddmkm!nvDumpConfig+0x4bdc8 ],rax
+  nvlddmkm!nvDumpConfig+0xa87a22  mov     qword ptr [nvlddmkm!nvDumpConfig+0x4bdc8 (fffff807`7f4b9140)],rax
 
  94й адрес(true):
   <nvdm.cpp:1157-> DriverEntryHelper(): if (g_GlobalData.bWDDMv22EnableSetTimingsDdi) >
   nvlddmkm!nvDumpConfig+0xa87c68  mov     cl,byte ptr [nvlddmkm!nvDumpConfig+0x81602]
   nvlddmkm!nvDumpConfig+0xa87c6e  test    cl,cl <is true?>
-  lea     rdx,[nvlddmkm!nvDumpConfig+0x1f0f08 ]
+  lea     rdx,[nvlddmkm!nvDumpConfig+0x1f0f08 (fffff807`7f65e280)]
   nvlddmkm!nvDumpConfig+0xa87c79   mov     qword ptr [nvlddmkm!nvDumpConfig+0x4c028],rdx //94й адрес
 
  102й адрес(true): 
   nvlddmkm!nvDumpConfig+0xa87ce2  test    cl,cl
-  nvlddmkm!nvDumpConfig+0xa87ce6 lea     rdx,[nvlddmkm+0xd5e9c]
-  nvlddmkm!nvDumpConfig+0xa87ced mov     qword ptr [nvlddmkm!nvDumpConfig+0x4c050],rdx
+  nvlddmkm!nvDumpConfig+0xa87ce6 lea     rdx,[nvlddmkm+0xd5e9c (fffff807`7ec25e9c)]
+  nvlddmkm!nvDumpConfig+0xa87ced mov     qword ptr [nvlddmkm!nvDumpConfig+0x4c050 (fffff807`7f4b93c8)],rdx
 
  161 адрес(true):
  <nvdm.cpp:1272-> DriverEntryHelper(): if (!(g_GlobalData.bEmulator & EMULATOR_OPTION_NO_DISP)) >
