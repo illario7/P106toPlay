@@ -65,6 +65,7 @@ nvlContext.cpp:564 pContext->setContextType(ContextKernel); 	 nvlddmkm!nvDumpCon
 nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi 
 
 //==========================================
+
 28 sept 2022: Ищем адрес rmControl через вызов nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )  
 nvRegistryReadFTS(...)= nvlddmkm+0x17363c
 NV_ETW_INFO(...)=  nvlddmkm+0x148990
@@ -86,6 +87,7 @@ CNvLBaseAdapter::enableDevice(void) {  //nvlddmkm+0x128064
 	nvlRm.cpp:5219     Nv04ControlKernel(pParams); //nvlddmkm+0x150104: call nvlddmkm+0x1dbb3
 		
 ======================================================== 
+
 17 sept 2022:
 Unfortunatly HCLONE not supported by Win10 and above, i keep trying to find different function to set PCI bandwidth.
 Here is some debug points from DriverEntryHelper() function, according nvdm.cpp file. Driver version 417.35.
@@ -213,11 +215,13 @@ Already done DriverEntryHelper function . I had defined addresses of
 shifts of most common used functions (for example...nvlddmkm+0x199f50 = NvDispatch() )! 
 Work in progress. Don't worry, be happy! 
 ======================================================== 
+	 
 12 sept 2022:
 During debugging I have found the code data section that returns data from PCIe interfere of graphic card. It writes to RSP register next sequence:
 01 00 00 00 02 00 00 00 07 1C DE 40 ..
 that means pcie v. 1 line width x2 and card id 1C07...
 ======================================================== 
+	 
 04 sept 2022:
 I have changed the nvidia kernel driver 417.35,466.77,512.15
 to make support all DirectX features,  such RayTracing by 
