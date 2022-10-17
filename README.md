@@ -1,5 +1,5 @@
 
-
+========================================================
 15.10.2022-> работа с nvapiEscape.cpp: попытка вызова команды NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS  
 nvapiEscape.cpp:30732     EXTERN_C BOOL nvapi_Escape(DRIVER_STATE_TYPE *pDrvState,ULONG iEsc, ULONG cjInOut, VOID *pvInOut)
 nvapiEscape.cpp:31584     rmParams.busSpeed = NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS;
