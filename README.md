@@ -11,6 +11,7 @@ nvapiEscape.cpp:31593     rmStatus = NvControl(DRIVER_HANDLE, g_nvapi.hRmClient,
 
 
 ===========================================================
+
 14.10.2022->>путь до установки PCI_EXPRESS_GEN2
 g_GlobalData.NvDDICallbacks.DxgkDdiCreateContext                   = NvLDDM_CreateContext;//31  
 nvlddm.cpp:1239   NvLDDM_CreateContext(HANDLE hDevic..){ 					nvlddmkm!nvDumpConfig+0x1ea558
@@ -61,8 +62,9 @@ nvlContext.cpp:449       pAdapter->lockPexGen2WAR(true);	nvlddmkm!nvDumpConfig+0
 14вызов  nvlContext.cpp:556 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2092b4:  call    nvlddmkm+0x1445f0
 nvlContext.cpp:564 pContext->setContextType(ContextKernel); 	 nvlddmkm!nvDumpConfig+0x2092d8:  call    nvlddmkm!nvDumpConfig+0x20b148
 nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi
-<-14.10.2022
+
 ======================================================== 
+
 28.09.2022->> ищем адрес rmControl через вызов nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )     
 	[nvRegistryReadFTS(...)= nvlddmkm+0x17363c]
 	[NV_ETW_INFO(...)=  nvlddmkm+0x148990
