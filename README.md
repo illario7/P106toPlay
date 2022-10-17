@@ -1,3 +1,89 @@
+
+
+15.10.2022-> работа с nvapiEscape.cpp: попытка вызова команды NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS  
+nvapiEscape.cpp:30732     EXTERN_C BOOL nvapi_Escape(DRIVER_STATE_TYPE *pDrvState,ULONG iEsc, ULONG cjInOut, VOID *pvInOut)
+nvapiEscape.cpp:31584     rmParams.busSpeed = NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS;
+nvapiEscape.cpp:31593     rmStatus = NvControl(DRIVER_HANDLE, g_nvapi.hRmClient, pPhysicalGpu->rmSubDeviceObjectID,NV2080_CTRL_CMD_BUS_SET_PCIE_SPEED,&(rmParams), sizeof(rmParams));
+
+#define NV2080_CTRL_CMD_BUS_SET_PCIE_SPEED       NV2080_CTRL_CMD(BUS, 0x05)
+#define NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS                    (0x00000003)
+
+<-15.10.2022 
+===========================================================
+14.10.2022->>путь до установки PCI_EXPRESS_GEN2
+g_GlobalData.NvDDICallbacks.DxgkDdiCreateContext                   = NvLDDM_CreateContext;//31  
+nvlddm.cpp:1239   NvLDDM_CreateContext(HANDLE hDevic..){ 					nvlddmkm!nvDumpConfig+0x1ea558
+nvlddm.cpp:1266    Status = pDevice->createContext(pCreateContext);				nvlddmkm!nvDumpConfig+0x1ea658: call nvlddmkm!nvDumpConfig+0x2073e0
+nvlContext.cpp:1343 CNvLDevice::createContext(DXGKARG_CREATECONTEXT* pCreateContext){		nvlddmkm!nvDumpConfig+0x2073e0
+nvlContext.cpp:1471  pContext = createContextInstance(pCreateContext, &CreateContextData);	nvlddmkm!nvDumpConfig+0x2074ba:  call    nvlddmkm!nvDumpConfig + 0x207608
+nvlContext.cpp:793    static CNvLContext* createContextInstance(){				  nvlddmkm!nvDumpConfig + 0x207608
+nvlContext.cpp:803     CNvLContext *pContext = CNvLContext::createInstance(pCreateContext, pCreateContextData); nvlddmkm!nvDumpConfig+0x207646: call    nvlddmkm!nvDumpConfig + 0x207df0
+nvlContext.cpp:97       CNvLContext::createInstance(DXGKARG_CREATECONTEXT* pCreateContext, CREATE_CONTEXT_DATA* pCreateContextData){nvlddmkm!nvDumpConfig + 0x207df0
+
+nvlContext.cpp:116  CNvLContextKepler()     nvlddmkm!nvDumpConfig+0x207eab:    call    nvlddmkm!nvDumpConfig+0x22d2b0  
+nvlContext.cpp:128 if (pContext != NULL)    nvlddmkm!nvDumpConfig+0x207f03: call    nvlddmkm!nvDumpConfig+0x23af94  {xor eax,eax} eax=94f92660	 
+nvlContext.cpp:131    if (NT_SUCCESS(pContext->initializeProfileAndDebug())) ???
+nvlContent.cpp:134     if (pCreateContext->Flags.SystemContext)       nvlddmkm!nvDumpConfig+0x207f14: mov     eax, dword ptr[r13 + 10h]  {eax=5}
+		       иначе  переход на else см.  nvlContext.cpp:159 nvlddmkm!nvDumpConfig+0x207f1b: je      nvlddmkm!nvDumpConfig+0x207fbb	  
+nvlContent.cpp:137	  pContext->setContextType(ContextSystem);    nvlddmkm!nvDumpConfig+0x207f26: call    nvlddmkm!nvDumpConfig+0x20b148 {ContextSystem=cType=edx=0;m_contextType=ptr[rcx+84h]=0xAh; => m_contextType = cType=0; return true=bl=1}
+nvlContext.cpp:147	  if (pAdapter->useWDDM20()&& pAdapter->getPager()->getTilePoolComptagMgr() != NULL) nvlddmkm!nvDumpConfig+0x207f5c: cmp dword ptr[rsi + 0C630h], 2000h
+nvlContext.cpp:149	    allocCbcCleanInvalidateWarResources(pDevice);                                    nvlddmkm!nvDumpConfig+0x207f7b: call    nvlddmkm+0x16e890  (дошел до точки!))))
+nvlContext.cpp:153	  if (pAdapter->useWDDM21()&& vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv )          nvlddmkm!nvDumpConfig+0x207f8d: cmp dword ptr[rsi + 0C630h], 2100h
+   выход  из if (NT_SUCCE.. по второй проверке        pCreateContext->Flags.SystemProtectedContext	     mov  eax,dword ptr [r13+10h] ; test    al,8 {al=5} условие не срабатывает! и переход на конец:  nvlddmkm!nvDumpConfig+0x207fa3:  je  nvlddmkm!nvDumpConfig+0x209311
+nvlContext.cpp:159   Обработка else от {if (pCreateContext->Flags.SystemContext)} //Not the system context// nvlddmkm!nvDumpConfig+0x207fbb
+ 	Адреса переменных:
+	pCreateContext->pPrivateDriverData 		ptr [r13+18h] 
+        pCreateContext->PrivateDriverDataSize		ptr [r13+20h] 
+
+1вызов nvlContext.cpp:259 VALIDATION_LOG_DPF(..			 nvlddmkm!nvDumpConfig+0x2080d6:  call    nvlddmkm+0x1445f0
+2вызов nvlContext.cpp:291 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x20846e:  call    nvlddmkm+0x1445f0
+3вызов nvlContext.cpp:311 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2084c3:  call    nvlddmkm+0x1445f0
+4вызов nvlContext.cpp:326 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208714:  call    nvlddmkm+0x1445f0
+5вызов nvlContext.cpp:340 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208800:  call    nvlddmkm+0x1445f0   
+6вызов  nvlContext.cpp:371 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208935:  call    nvlddmkm+0x1445f0   
+7вызов  nvlContext.cpp:399 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208b34:  call    nvlddmkm+0x1445f0   
+8вызов  nvlContext.cpp:416 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208c58:  call    nvlddmkm+0x1445f0   
+//искомый код между 8м и 9м вызовами  VALIDATION_LOG_DPF:
+nvlContext.cpp:448       pContext->setLockPexGen2WAR(true);
+nvlContext.cpp:449       pAdapter->lockPexGen2WAR(true);	nvlddmkm!nvDumpConfig+0x208cff:   call    nvlddmkm+0xeb964
+	#define NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2         NV2080_CTRL_CMD(PERF, 0x8B)
+									      nvlddmkm+0xeb9e7:   mov     r8d,2080208Bh		// NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2=2080 020 8B
+	nvlAdapter.cpp:15602        if (!pChannel->rmControl(pChannel->hSubDevice(ulEngine), NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2,...   nvlddmkm+0xeb9f8:   call    nvlddmkm+0x150350	
+если не получится надо искать вызов функции NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS в области nvapiEscape, это вызывается из Система->NvMgmtDispatchDeviceControl()-> nvapi_Escape(...)[nvlFilter.cpp:2758] 
+и далее идем в реализацию nvapiEscape.cpp:30732
+
+9вызов  nvlContext.cpp:466 VALIDATION_LOG_DPF(..			 nvlddmkm!nvDumpConfig+0x208dee:  call    nvlddmkm+0x1445f0  
+10вызов  nvlContext.cpp:481 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208e01:  call    nvlddmkm+0x1445f0  
+11вызов  nvlContext.cpp:491 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208f00:  call    nvlddmkm+0x1445f0 
+12вызов  nvlContext.cpp:525 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x209003:  call    nvlddmkm+0x1445f0 
+13вызов  nvlContext.cpp:542 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2091ca:  call    nvlddmkm+0x1445f0 
+14вызов  nvlContext.cpp:556 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2092b4:  call    nvlddmkm+0x1445f0
+nvlContext.cpp:564 pContext->setContextType(ContextKernel); 	 nvlddmkm!nvDumpConfig+0x2092d8:  call    nvlddmkm!nvDumpConfig+0x20b148
+nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi
+<-14.10.2022
+======================================================== 
+28.09.2022->> ищем адрес rmControl через вызов nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )     
+	[nvRegistryReadFTS(...)= nvlddmkm+0x17363c]
+	[NV_ETW_INFO(...)=  nvlddmkm+0x148990
+nvlddm.cpp:2892 Status = pAdapter->startDevice() 	nvlddmkm!nvDumpConfig+0x229a09: call nvlddmkm+0xf0894
+nvlAdapter.cpp:2841   NTSTATUS  CNvLAdapter::startDevice(PDXG...){ 
+	[createProcessNotify()=nvlddmkm+0x135630]
+ nvlAdapter.cpp:2876 if (getInterfaceVersion() >= DXGKDDI_INTERFACE_VERSION_WIN8) //nvlddmkm + 0xf0961: cmp     dword ptr [rax+4],300Eh ds:002b
+ nvlAdapter.cpp:2889 nvAssert(m_pMCMgr==NULL); // nvlddmkm+0xf0994:
+ nvlAdapter.cpp:2919  if (.... = startEventThread()...)				  // nvlddmkm+0xf0a2c: call  nvlddmkm+0x125f34    { nvlddmkm+0x124b38 =EventRoutine() nvlEvent.cpp:906  }
+ nvlAdapter.cpp:2926  Status = setupAdapter(bUseOsPostDeviceAsPrimary, 		  // nvlddmkm+0xf0a48: call [rax+50]	 = nvlddmkm+0x129c24
+nvlInit.cpp:855  NTSTATUS CNvLAdapter::setupAdapter(    //nvlddmkm+0x129c24
+ nvlInit.cpp:972 ...Status = buildDeviceInfo()... 				//nvlddmkm+0x129e0b: call    nvlddmkm+0x12756c
+	buildDeviceInfo(){ //nvlddmkm+0x12756c
+		CNvLBaseAdapter::enableDevice(void) {  //nvlddmkm+0x128064
+			m_PciInterface->SetBusData  //nvlddmkm+0x1280b0: call [rax+30]? вычислить!
+ nvlInit.cpp:1004   if (!rmAlloc(NV01_NUcall        //nvlddmkm+0x14ca40
+ nvlInit.cpp:1019   if (!rmControl(hClient(), NV0000_CTRL_CMD_OS_SET_WRITE_COMBINE_POLICY, &Policy, sizeof(Policy)))  //nvlddmkm+0x129f1e     call    nvlddmkm+0x15026c
+  	nvlRm.cpp:1172  ::rmControl(&params, kernelMode);	// nvlddmkm+0x150309:    call    nvlddmkm+0x15006c
+		nvlRm.cpp:5219     Nv04ControlKernel(pParams); //nvlddmkm+0x150104: call nvlddmkm+0x1dbb30    
+<--28.09.2022
+=====================================================
+
 17 sept 2022:
 Unfortunatly HCLONE not supported by Win10 and above, i keep trying to find different function to set PCI bandwidth.
 Here is some debug points from DriverEntryHelper() function, according nvdm.cpp file. Driver version 417.35.
