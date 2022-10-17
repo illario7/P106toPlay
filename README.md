@@ -62,10 +62,30 @@ nvlContext.cpp:449       pAdapter->lockPexGen2WAR(true);	nvlddmkm!nvDumpConfig+0
 13вызов  nvlContext.cpp:542 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2091ca:  call    nvlddmkm+0x1445f0 
 14вызов  nvlContext.cpp:556 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2092b4:  call    nvlddmkm+0x1445f0
 nvlContext.cpp:564 pContext->setContextType(ContextKernel); 	 nvlddmkm!nvDumpConfig+0x2092d8:  call    nvlddmkm!nvDumpConfig+0x20b148
-nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi
+nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi 
 
+//==========================================
+28 sept 2022: Ищем адрес rmControl через вызов nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )  
+nvRegistryReadFTS(...)= nvlddmkm+0x17363c
+NV_ETW_INFO(...)=  nvlddmkm+0x148990
+nvlddm.cpp:2892 Status = pAdapter->startDevice() 	nvlddmkm!nvDumpConfig+0x229a09: call nvlddmkm+0xf0894
+nvlAdapter.cpp:2841   NTSTATUS  CNvLAdapter::startDevice(PDXG...){ 
+createProcessNotify()=nvlddmkm+0x135630
+nvlAdapter.cpp:2876 if (getInterfaceVersion() >= DXGKDDI_INTERFACE_VERSION_WIN8) //nvlddmkm + 0xf0961: cmp     dword ptr [rax+4],300Eh ds:002b
+nvlAdapter.cpp:2889 nvAssert(m_pMCMgr==NULL); // nvlddmkm+0xf0994:
+nvlAdapter.cpp:2919  if (.... = startEventThread()...)	
+vlAdapter.cpp:2926  Status = setupAdapter(bUseOsPostDeviceAsPrimary, 		  // nvlddmkm+0xf0a48: call [rax+50]	 = nvlddmkm+0x129c24
+nvlInit.cpp:855  NTSTATUS CNvLAdapter::setupAdapter(    //nvlddmkm+0x129c24
+nvlInit.cpp:972 ...Status = buildDeviceInfo()... 				//nvlddmkm+0x129e0b: call    nvlddmkm+0x12756c
+	buildDeviceInfo(){ //nvlddmkm+0x12756c
+CNvLBaseAdapter::enableDevice(void) {  //nvlddmkm+0x128064
+			m_PciInterface->SetBusData  //nvlddmkm+0x1280b0: call [rax+30]? вычислить!
+ nvlInit.cpp:1004   if (!rmAlloc(NV01_NUcall        //nvlddmkm+0x14ca40
+ nvlInit.cpp:1019   if (!rmControl(hClient(), NV0000_CTRL_CMD_OS_SET_WRITE_COMBINE_POLICY, &Policy, sizeof(Policy)))  //nvlddmkm+0x129f1e     call    nvlddmkm+0x15026c
+  	nvlRm.cpp:1172  ::rmControl(&params, kernelMode);	// nvlddmkm+0x150309:    call    nvlddmkm+0x15006c
+	nvlRm.cpp:5219     Nv04ControlKernel(pParams); //nvlddmkm+0x150104: call nvlddmkm+0x1dbb3
+		
 ======================================================== 
-
 17 sept 2022:
 Unfortunatly HCLONE not supported by Win10 and above, i keep trying to find different function to set PCI bandwidth.
 Here is some debug points from DriverEntryHelper() function, according nvdm.cpp file. Driver version 417.35.
@@ -184,6 +204,7 @@ nt!PnpCallDriverEntry+0x47 Вызов точки входа DriverEntryHelper д
 	nvlddmkm+0x11ff2 NvIsWin10OrLater()  // Disable the HCLONE feature from Win10 and above.
 	
 Конец функции точки входа <DriverEntryHelper>
+======================================================== 
 
 15 sept 2022:
 For now i still debugging driver to compare asm functions and calls with a C++ code from nwdm. cpp, hFilter. cpp, HClone. cpp and others.
@@ -191,12 +212,12 @@ I still keep trying to find HClone section to change some values.
 Already done DriverEntryHelper function . I had defined addresses of 
 shifts of most common used functions (for example...nvlddmkm+0x199f50 = NvDispatch() )! 
 Work in progress. Don't worry, be happy! 
-
+======================================================== 
 12 sept 2022:
 During debugging I have found the code data section that returns data from PCIe interfere of graphic card. It writes to RSP register next sequence:
 01 00 00 00 02 00 00 00 07 1C DE 40 ..
 that means pcie v. 1 line width x2 and card id 1C07...
-
+======================================================== 
 04 sept 2022:
 I have changed the nvidia kernel driver 417.35,466.77,512.15
 to make support all DirectX features,  such RayTracing by 
