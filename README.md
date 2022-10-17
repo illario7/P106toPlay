@@ -66,28 +66,6 @@ nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x20931
 
 ======================================================== 
 
-28.09.2022->> ищем адрес rmControl через вызов nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )     
-	[nvRegistryReadFTS(...)= nvlddmkm+0x17363c]
-	[NV_ETW_INFO(...)=  nvlddmkm+0x148990
-nvlddm.cpp:2892 Status = pAdapter->startDevice() 	nvlddmkm!nvDumpConfig+0x229a09: call nvlddmkm+0xf0894
-nvlAdapter.cpp:2841   NTSTATUS  CNvLAdapter::startDevice(PDXG...){ 
-	[createProcessNotify()=nvlddmkm+0x135630]
- nvlAdapter.cpp:2876 if (getInterfaceVersion() >= DXGKDDI_INTERFACE_VERSION_WIN8) //nvlddmkm + 0xf0961: cmp     dword ptr [rax+4],300Eh ds:002b
- nvlAdapter.cpp:2889 nvAssert(m_pMCMgr==NULL); // nvlddmkm+0xf0994:
- nvlAdapter.cpp:2919  if (.... = startEventThread()...)				  // nvlddmkm+0xf0a2c: call  nvlddmkm+0x125f34    { nvlddmkm+0x124b38 =EventRoutine() nvlEvent.cpp:906  }
- nvlAdapter.cpp:2926  Status = setupAdapter(bUseOsPostDeviceAsPrimary, 		  // nvlddmkm+0xf0a48: call [rax+50]	 = nvlddmkm+0x129c24
-nvlInit.cpp:855  NTSTATUS CNvLAdapter::setupAdapter(    //nvlddmkm+0x129c24
- nvlInit.cpp:972 ...Status = buildDeviceInfo()... 				//nvlddmkm+0x129e0b: call    nvlddmkm+0x12756c
-	buildDeviceInfo(){ //nvlddmkm+0x12756c
-		CNvLBaseAdapter::enableDevice(void) {  //nvlddmkm+0x128064
-			m_PciInterface->SetBusData  //nvlddmkm+0x1280b0: call [rax+30]? вычислить!
- nvlInit.cpp:1004   if (!rmAlloc(NV01_NUcall        //nvlddmkm+0x14ca40
- nvlInit.cpp:1019   if (!rmControl(hClient(), NV0000_CTRL_CMD_OS_SET_WRITE_COMBINE_POLICY, &Policy, sizeof(Policy)))  //nvlddmkm+0x129f1e     call    nvlddmkm+0x15026c
-  	nvlRm.cpp:1172  ::rmControl(&params, kernelMode);	// nvlddmkm+0x150309:    call    nvlddmkm+0x15006c
-		nvlRm.cpp:5219     Nv04ControlKernel(pParams); //nvlddmkm+0x150104: call nvlddmkm+0x1dbb30    
-<--28.09.2022
-=====================================================
-
 17 sept 2022:
 Unfortunatly HCLONE not supported by Win10 and above, i keep trying to find different function to set PCI bandwidth.
 Here is some debug points from DriverEntryHelper() function, according nvdm.cpp file. Driver version 417.35.
