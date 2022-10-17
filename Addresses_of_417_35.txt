@@ -1,4 +1,4 @@
-Таблица адресов вычисленных функций драйвера 417.35
+Table of functions calls of  417.35 driver:
 
 nvlddmkm+0x295f8	LOG()	
 nvlddmkm+0xe20c8	CNvLAdapter::DpGetDeviceInformation()
