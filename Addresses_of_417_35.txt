@@ -1,0 +1,54 @@
+Таблица адресов вычисленных функций драйвера 417.35
+
+nvlddmkm+0x295f8	LOG()	
+nvlddmkm+0xe20c8	CNvLAdapter::DpGetDeviceInformation()
+nvlddmkm+0xe8064	checkRegistryOverrides()
+nvlddmkm+0xe8600	CNvLBaseAdapter::createAcpiChildNames()
+nvlddmkm+0xe95dc        CNvLBaseAdapter::destroyAcpiChildNames()
+nvlddmkm+0xf0894 	CNvLAdapter::startDevice()
+
+nvlddmkm+0x1dba58       Nv04AllocKernel()
+nvlddmkm+0x1dba60	Nv04AllocUser()
+nvlddmkm+0x1dbb30	Nv04ControlKernel()
+nvlddmkm+0x1dbb3c	Nv04ControlUser()
+nvlddmkm+0x1208f0	nvAssert() ; DPF_MODULE(ERROR,...
+nvlddmkm+0x124b38 	EventRoutine()
+nvlddmkm+0x125f34	startEventThread()
+nvlddmkm+0x127368	CNvLBaseAdapter::buildAccessRanges()
+nvlddmkm+0x12756c	CNvLBaseAdapter::buildDeviceInfo()
+nvlddmkm+0x128064	CNvLBaseAdapter::enableDevice()
+nvlddmkm+0x128780 	CNvLBaseAdapter::getResourceSize()
+nvlddmkm+0x129578	CNvLBaseAdapter::mapAccessRanges()
+nvlddmkm+0x129c24	CNvLAdapter::setupAdapter()
+nvlddmkm+0x135630       createProcessNotify()
+nvlddmkm+0x1377b4	nvAllocatePoolWithTag()
+nvlddmkm+0x137830	nvFreePoolWithTag()
+nvlddmkm+0x1445f0	VALIDATION_LOG_DPF(..)
+nvlddmkm+0x14a2d8	CNvLAdapter::getDxAdapter()
+nvlddmkm+0x14c7dc	VOID rmAlloc()
+nvlddmkm+0x14ca40	CNvLBaseAdapter::rmAlloc()
+nvlddmkm+0x15006c	VOID rmControl()
+nvlddmkm+0x15026c 	CNvLBaseAdapter::rmControl()
+nvlddmkm+0x150350 	CNvLChannel::rmControl()
+nvlddmkm+0x16e890	allocCbcCleanInvalidateWarResources()
+nvlddmkm+0x198b78	NvMgmtDispatchCreateClose()  
+nvlddmkm+0x198c08	NvMgmtDispatchDeviceControl()
+
+nvlddmkm+0x753100 	portMemSet()
+nvlddmkm+0x753200 	memcpy()?
+nvlddmkm+0x773494	CNvLBaseAdapter::getWinServices()::getSystemMemorySize()
+nvlddmkm+0x7949a0	CNvLBaseAdapter::getWinServices()
+
+nvlddmkm+0xe47ec	m_pAdapter->allocGMMUVirtualMemory()
+nvlddmkm+0xeb964	CNvLAdapter::lockPexGen2WAR()	
+
+nvlddmkm!nvDumpConfig+0x20615c	
+nvlddmkm!nvDumpConfig+0x20b148		pContext->setContextType()
+nvlddmkm!nvDumpConfig+0x20c128 		pDevice->allocGMMUVirtualAddress()
+
+
+Адреса системных функций виндоса:
+nvlddmkm+0x7740b8	nt!KeSetEvent
+nvlddmkm+0x7743c0	nt!ObfReferenceObject
+nvlddmkm+0x7748b8	nt!RtlInitUnicodeString
+nvlddmkm+0x7740f0 	nt!KeBugCheckEx
