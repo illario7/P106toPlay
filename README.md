@@ -1,5 +1,6 @@
 
 ========================================================
+
 15.10.2022-> работа с nvapiEscape.cpp: попытка вызова команды NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS  
 nvapiEscape.cpp:30732     EXTERN_C BOOL nvapi_Escape(DRIVER_STATE_TYPE *pDrvState,ULONG iEsc, ULONG cjInOut, VOID *pvInOut)
 nvapiEscape.cpp:31584     rmParams.busSpeed = NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS;
@@ -8,7 +9,7 @@ nvapiEscape.cpp:31593     rmStatus = NvControl(DRIVER_HANDLE, g_nvapi.hRmClient,
 #define NV2080_CTRL_CMD_BUS_SET_PCIE_SPEED       NV2080_CTRL_CMD(BUS, 0x05)
 #define NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS                    (0x00000003)
 
-<-15.10.2022 
+
 ===========================================================
 14.10.2022->>путь до установки PCI_EXPRESS_GEN2
 g_GlobalData.NvDDICallbacks.DxgkDdiCreateContext                   = NvLDDM_CreateContext;//31  
