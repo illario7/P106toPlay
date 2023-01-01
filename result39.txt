@@ -1,0 +1,1662 @@
+	ПОЛУЧИЛОСЬ 417.35 ВОТ РЕШЕНИЕ!
+на точке останова nvlddmkm!nvDumpConfig+0x231a2c
+Вызвать память по адресам nvlddmkm+0x797BFC и nvlddmkm+0x7C182c
+изменить строки 07 00 00 00 07 1с  и(или)   07 00 00 00 09 1с
+на       строки 07 00 00 00 08 1с  и(или)   07 00 00 00 08 1с   (меняем на несуществующие карты)
+
+По данным адресам лежат карты, находящиеся в черном списке. 
+Проверка производится вызовом  call  nvlddmkm+0x1204b4, при этом в регистре [eax] лежит уже значение [eax=1c09]-модель текущей карты.
+
+425.31
+на точке останова nvlddmkm!nvDumpConfig+0xabd324 (точка входа)
+Вызвать память по адресам nvlddmkm+0x7AED2C и nvlddmkm+0x7D8832
+
+
+
+Entry 22:
+ba e 1 nvlddmkm!nvDumpConfig+0xa87e04			22_точка входа
+
+Entry 35:
+ba e 1 nvlddmkm!nvDumpConfig+0xa86c88			35_точка входа
+
+
+до этого:
+ba e 1 nt!PnpCallDriverEntry	
+ba e 1 nt!guard_dispatch_icall+0x71   - jmp rax  - прыжок на точку входа любого драйвера
+ba e 1 nt!PnpCallDriverEntry+0x4c    -выход из вызова драйвера
+
+
+часто вызывается (22):
+ba e 1 nvlddmkm+0x1377b8
+
+
+точка выгрузки драйверов:
+ba e 1  nt!IopUnloadDriver
+
+проверить 35 событие регистр r15=b2
+ba e 1  nvlddmkm+0x1da934
+
+.prefer_dml 1
+x /D nvlddmkm!*
+.sympath+ SRV*https://driver-symbols.nvidia.com/
+
+
+
+@$scopeip
+
+порядок вызов элементов драйвера 35 на точке nt!guard_dispatch_icall+0x71 :
+
+nt!PiRestartDevice+0x77
+nt!PipProcessDevNodeTree+0x32e
+nt!PipCallDriverAddDevice
+nt!PipCallDriverAddDevice+0x417   			call    nt!PnpCallDriverQueryServiceHelper
+nt!PnpCallDriverQueryServiceHelper+0xd5			call    nt!PipCallDriverAddDeviceQueryRoutine
+nt!PipCallDriverAddDeviceQueryRoutine+0x1b9		call    nt!IopLoadDriver
+nt!IopLoadDriver+0x237                                  call    nt!MmLoadSystemImage
+	nt!MmLoadSystemImageEx+0x1ab                     call    nt!MiGetSystemAddressForImage после вызова в rax содержится адрес драйвера
+		nt!MmLoadSystemImageEx+0x27d		  call    nt!MiMapSystemImage (память по адресу [rsp+60] заполняется драйвером)
+			nt!MiMapSystemImage+0x8a	   call    nt!MiAddMappedPtes
+				nt!MiAddMappedPtes+0xa9	    call    nt!MiMakePrototypePteDirect	
+				nt!MiAddMappedPtes+0xc1     mov     qword ptr [rsi],rbx (Копирование в память по адресу драйвера происходит частями по 4кб)
+
+
+nt!IopLoadDriver+0x4e0 					call    nt!PnpCallDriverEntry 
+nt!PnpCallDriverEntry+0x47				call    nt!guard_dispatch_icall адрес входа содержится в[rax] или [rdx] но не факт
+
+22_nvlddmkm!nvDumpConfig+0xa87e04 			22_точка входа
+35_nvlddmkm!nvDumpConfig+0xa86c88			35_точка входа
+425_nvDumpConfig+0xabd324				425_точка входа
+
+22_nvlddmkm!nvDumpConfig+0xa87556			call    22_nvlddmkm+0x144460
+35_nvlddmkm!nvDumpConfig+0xa8755f 			call    35_nvlddmkm+0x144454
+
+  22_nvlddmkm+0x144493					call    22_nvlddmkm+0x144d5c 
+  35_nvlddmkm+0x144487					call    22_nvlddmkm+0x144d50
+
+  35 nvlddmkm+0x144db4 					call    qword ptr [nvlddmkm+0x774698]
+  	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+1й байт по адресу пока не изменился = 00 (ждем пока станет 01)
+
+
+
+22_nvlddmkm+0xe0611 mov word ptr [rbx+9674h],100h   [rbx=тот самый адрес] но пока получается 00 01 [rbx+9674h]=00 01
+35_nvlddmkm+0xe04f1 mov word ptr [rbx+9674h],100h   [rbx=тот самый адрес] но пока получается 00 01 [rbx+9674h]=00 01
+11:49 01.09.2022
+!!!Ниже происходит проверка текущей карты с моделями из черного списка:
+!!!22_nvlddmkm!nvDumpConfig+0x2271a3 			call	22_nvlddmkm!nvDumpConfig+0x231a20
+!!!35_nvlddmkm!nvDumpConfig+0x22719f			call    35_nvlddmkm!nvDumpConfig+0x231a2c
+!!!при этом в регистре [eax] лежит уже значение [eax=1c09]-модель текущей карты.
+!!!Черные списки лежат по адресам  по адресам nvlddmkm+0x797BFC и nvlddmkm+0x7C182c, чтобы обойти надо: 
+!!!изменить строки 07 00 00 00 07 1с  и(или)   07 00 00 00 09 1с
+!!!на       строки 07 00 00 00 08 1с  и(или)   07 00 00 00 08 1с   (меняем на несуществующие карты)
+
+22_nvlddmkm!nvDumpConfig+0x231a4d			lea     r15d,[rdi+1]	rdi = 0  	r15= 0 + 1 = 1
+22_nvlddmkm!nvDumpConfig+0x231b40 			call    22_nvlddmkm+0xef4a0   r15=1
+
+22_nvlddmkm+0xef4a0 mov byte ptr [rcx+9674h],dl     [rcx=тот самый адрес] dl=1                     [rbx+9674h]=01 01
+35_nvlddmkm+0xef3f4 mov byte ptr [rcx+9674h],dl
+ 
+
+
+
+
+nt!PipCallDriverAddDevice+0x811
+nt!PipCallDriverAddDevice+0x822
+nt!PpvUtilCallAddDevice
+22_nvlddmkm+0x197464
+22_nvlddmkm+0x1975ac
+
+nvDumpConfig+0xa88e0c
+nvlddmkm+0x197644
+nvlddmkm+0x16dea8
+nvlddmkm+0x197a1c
+igdkmd64!hybDriverEntry+0x733480
+nvlddmkm+0x16dea8
+igdkmd64!hybDriverEntry+0x81330 
+nvlddmkm+0x16dea8
+TeeDriverW8x64+0x24014
+nvlddmkm+0x16dea8 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197ab0 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+TeeDriverW8x64+0x11938
+nvlddmkm+0x16dea8 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c
+nvlddmkm+0x197a1c
+nvlddmkm+0x16dea8
+nvlddmkm+0x1356b0 
+nvlddmkm+0x16dea8
+..повторы 13раз
+nvlddmkm+0x1356b0
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x1356b0
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+igdkmd64!hybDriverEntry+0x50640
+..повторы много 80раз
+nvlddmkm+0x16dea8
+..повторы 5 раз
+igdkmd64!hybDriverEntry+0x2a360
+igdkmd64!hybDriverEntry+0x2a050
+igdkmd64!hybDriverEntry+0x50640
+nvlddmkm+0x16dea8
+igdkmd64!hybDriverEntry+0x50640
+..повторы
+igdkmd64!hybDriverEntry+0x13d5b0
+igdkmd64!hybDriverEntry+0x50640
+..повторы 12 раз
+igdkmd64!hybDriverEntry+0x147c50
+igdkmd64!hybDriverEntry+0x8cea0 
+..повторы 3 разa
+nvlddmkm+0x16dea8 
+..повторы 14 раз
+igdkmd64!hybDriverEntry+0x50640
+..повторы много 20 раз
+igdkmd64!hybDriverEntry+0x26bcb0
+..повторы много 25 раз
+igdkmd64!hybDriverEntry+0x50640
+igdkmd64!hybDriverEntry+0x50640
+gdkmd64!hybDriverEntry+0x120800
+igdkmd64!hybDriverEntry+0x50640
+..повторы 11 раз
+igdkmd64!hybDriverEntry+0x8cea0 
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+igdkmd64!hybDriverEntry+0x50640
+igdkmd64!hybDriverEntry+0x50640
+igdkmd64!hybDriverEntry+0x50640
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8  (<22> nvlddmkm+0x16dcd4) пока искал проверял адрес nvlddmkm+0x16db72
+(<22> количество вызовов 0x16dcd4 - 120 раза до вызова 0x124b63, но надо проверить еще )
+(<35> количество вызовов nvlddmkm+0x16dea8 - 131 раза до вызова 0x124b38, но надо проверить еще )
+nvlddmkm+0x124b38  (<22> nvlddmkm+0x124b63)  nvAdapter: Device Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000'
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x1e9474 
+nvlddmkm+0x197a1c 
+..повторы много
+nvlddmkm+0x197a1c 
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x197a1c 
+nvlddmkm+0x1da934
+(<22> количество вызовов 0x16dcd4 - 5 раз и выводится надпись "driver model is 0x2500 " )
+(<35> количество вызовов 0x16dea8 - 0 раза  и выводится надпись "driver model is 0x1300 " )
+nvlddmkm+0x1da934 ***** CNvLAdapter* ffff81050f666000 -> DriverModel is 0x2500 ******
+(<22> количество вызовов 0x16dcd4 - более 200 раз после надписи "driver model is 0x2500 " )
+(<35> количество вызовов0x16dea8  - 4 раз после надписи "driver model is 0x1300 " )
+
+Проверить в <35>м адрес  nvlddmkm+0x2AD51D (call 0x29c2a8), как аналог адреса<22> nvlddmkm+0x2ad4be (call 0x29c204), далее по стеку <22> вызов nvlddmkm+0x2ad4c3  (xor r15d,r15d))
+
+nvlddmkm+0x16dea8
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x197a1c 
+nvlddmkm+0x16dea8
+nvlddmkm+0x16dea8
+nvlddmkm+0x197a1c 
+nvlddmkm+0x16dea8
+
+fffff805`4a0ddb72
+fffff805`4a0ddcb4
+nt!IopUnloadDriver:  r15 = 2b 
+	
+проверить следующие точки  до IopUnloadDriver вызовов (взято из стека на IopUnloadDriver:):
+
+nt!ExpWorkerThread+0x105  
+		в ptr[nt!PnpDeviceEventList] содержится посоянный адрес, куда по смещению +78h записывается адрес лога драйвера
+		rdx,qword ptr [nt!PnpDeviceEventList (fffff803`8232d050)]
+	     nt!PnpDeviceEventWorker+0x8f	lea     rax,[rdx+78h]	кто то изменяет адрес, записанный в rdx+78?
+             nt!PnpDeviceEventWorker+0x93	mov rbx, qword ptr[rax]  в rbx записывается результат лога драйвера из ptr[rax]
+
+оч.многораз  nt!PnpDeviceEventWorker+0x96 (  cmp     rbx,rax)		
+оч.многораз  nt!PnpDeviceEventWorker+0x99 (jne     nt!PnpDeviceEventWorker+0x136)
+58	раз  nt!PnpDeviceEventWorker+0x136
+58	раз  nt!PnpDeviceEventWorker+0x16b (mov  qword ptr [rbp-30h],rbx)
+
+58раз nt!PnpDeviceEventWorker+0x2c5 (lea rcx,[rbp-30h])=>  rcx содержит адрес адреса + 10, где лежит 2b
+
+nt!PnpDeviceEventWorker+0x2c9 (вызывается очень часто (58раз) до выгрузки драйвера) проверяем именно 58й раз
+58й раз nt!PnpProcessTargetDeviceEvent+0x1c (mov     rsi,qword ptr [rcx]) в rcx содержится адрес где лижит адрес на 2b 
+	nt!PnpProcessTargetDeviceEvent+0x1f проверяем rsi - содержит 2b
+nt!PnpProcessTargetDeviceEvent+0x22	(rax,qword ptr [rsi+98h] )   ptr [rsi+98h] = `.6.....P.C.I.\.V.E.N._.1. ._.1.C.0.7.&.S.U.B.S.Y.S._
+
+именно в 58й nt!PnpProcessTargetDeviceEvent+0x29 (test rax,rax) !=0 потому что по адресу ptr[rax]= `.6.....P.C.I.\.V.E.N._.1. ._.1.C.0.7.&.S.U.B.S.Y.S._
+именно в 58й срабатывает переход   nt!PnpProcessTargetDeviceEvent+0x2c  (jne     nt!PnpProcessTargetDeviceEvent+0xc6) срабатывает в 58 раз по условию (test rax,rax) !=0 , а в rax ле
+проверить nt!PnpProcessTargetDeviceEvent+0xb9  (mov     rsi,qword ptr [rsp+40h]) (вызывается очень часто (58раз) до выгрузки драйвера)
+
+nt!PnpProcessTargetDeviceEvent+0xe6    {call nt!PnpProcessQueryRemoveAndEject}
+
+nt!PnpProcessQueryRemoveAndEject  ptr[rsi+10h] = 2b 00 00 00 00 00 00 00
+проверить  nt!PnpProcessTargetDeviceEvent+0xd6  (test byte ptr[nt!Microsoft_Windows_Kernel_PnPEnableBits+0x3],8)  значение по этому адресу =60h  
+проверить  nt!PnpProcessQueryRemoveAndEject
+проверить  nt!PnpProcessQueryRemoveAndEject+0x396 (call    nt!PnpDeleteLockedDeviceNodes)
+нет нужного адреса ptr[nt!IopPendingSurpriseRemovals] =  90 4b 24 57 01 f8 ff ff
+nt!PnpProcessQueryRemoveAndEject+0x116					
+nt!PnpProcessQueryRemoveAndEject+0x203 (mov     rcx,rsi ) 
+nt!PnpProcessQueryRemoveAndEject+0x25f (mov     rcx,rsi )    ptr[rsi+10h] = 2b 00 00 00 00 00 00 00
+nt!PnpProcessQueryRemoveAndEject+0x262  (call  nt!PiEventRemovalPostSurpriseRemovе) 
+вход nt!PiEventRemovalPostSurpriseRemovе
+  nt!PiEventRemovalPostSurpriseRemove+0x20       mov     rsi,rcx
+  nt!PiEventRemovalPostSurpriseRemove+0x57 (mov r8d,ptr[rsi+10h])  заполняем r8 значением адреса ptr[rsi+10h] = 2b 00 00 00 00 00 00 00
+  nt!PiEventRemovalPostSurpriseRemove+0x65 (call nt!PnpQueuePendingSurpriseRemoval )
+	вход nt!PnpQueuePendingSurpriseRemoval  (r8 = 2b)
+		nt!PnpQueuePendingSurpriseRemoval+0xc5  (mov     qword ptr [rax],rbx)
+		 изменение адреса на правильный, но значение еще не заполняется
+			 mov     r13d,r8d 			r8 = 2b
+			 mov     dword ptr [rbx+54h],r13d  в r13d = 2b
+
+	выход nt!PnpQueuePendingSurpriseRemoval 
+выход nt!PiEventRemovalPostSurpriseRemovе
+							 90 8f 77 e4 0f a6 ff ff 
+nt!PnpIsChainDereferenced
+	есть нужный адреса ptr[nt!IopPendingSurpriseRemovals] =  90 7d f7 19 08 8c ff ff
+
+         есть нужный адрес ptr[nt!IopPendingSurpriseRemovals] = 10 e6 17 24 84 d8 ff ff
+nt!PnpIsChainDereferenced+0xa7 (call  nt!PnpChainDereferenceComplete)
+
+nt!PnpChainDereferenceComplete+0xf6 xor ecx,ecx
+nt!PnpChainDereferenceComplete+0xf8 -> call nt!PnpDelayedRemoveWorker 
+
+nt!PnpDelayedRemoveWorker 
+nt!PnpDelayedRemoveWorker+0xb {mov rbp,rsp} указатель на указатель записываем в rbp из rsp
+..наблюдаем за магией изменения 16 значений в памяти по адресу [rbp-10]
+по этому адресу ptr[nt!IopPendingSurpriseRemovals]  хранится адрес+54, где лежит 2b
+
+nt!PnpDelayedRemoveWorker+0x48  call    nt!ExAcquireResourceExclusiveLit смотреть ptr [nt!IopPendingSurpriseRemovals]
+nt!PnpDelayedRemoveWorker+0x4d mov     rdx,qword ptr [nt!IopPendingSurpriseRemovals]  rdx за
+nt!PnpDelayedRemoveWorker+0xb5 qword ptr [rax],rdx  !основное изменение!   адрес на значение 2b хранится в rdx [ точнее  rdx+54]
+и далее	этот адрес записывается в ptr[rbp-10]	
+....................
+nt!PnpDelayedRemoveWorker+0xd7 {mov rdi,qword ptr[rbp-10h]}записываем адрес где лежит адрес на "2b" из rbp-10h в rdi
+				"2b" лежит пока по адресу rdi+54h
+nt!PnpDelayedRemoveWorker+0x10c	{ mov  rcx,rdi}	происходит копирование адреса из rdi в rcx
+nt!PnpDelayedRemoveWorker+0x10f {  call    nt!PipRemoveDevicesInRelationList}
+	//ориентир по стеку nt!PnpDelayedRemoveWorker+0x114 этот код выполнится после предыдущего сильно позже!
+nt!PipRemoveDevicesInRelationList {2b лежит по теперь адресу rcx+54h}, далее  переносится в rbx {mov  rbx,rcx}
+nt!PipRemoveDevicesInRelationList+0x68  rcx=2b {mov ecx,dword ptr[rbx+54h]} ffff9d89`0056b664
+nt!PipRemoveDevicesInRelationList+0x88  { call    nt!PnpDeleteLockedDeviceNodes } 
+nt!PnpDeleteLockedDeviceNodes+0xa4 rsi=2b {mov esi,dword ptr[rbp+60h]} ffffc280`5f6068c0
+nt!PnpDeleteLockedDeviceNodes+0xe0 r8=2b {mov r8d,esi}
+nt!PnpDeleteLockedDeviceNodes+0xf2 { call    nt!PnpDeleteLockedDeviceNode } 
+nt!PnpDeleteLockedDeviceNode		r8=2b  rsi=2b 
+nt!PnpDeleteLockedDeviceNode+0x4e       rsi=2b rdx=2
+проверить nt!PnpUnloadAttachedDriver
+nt!PnpRemoveLockedDeviceNode+0x240		r15=2b
+nt!PnpUnloadAttachedDriver+0xa6			2b
+nt!IopUnloadDriver				2b
+
+
+
+@$scopeip
+
+
+nvlddmkm+0x124b38 (поток 2):
+ call    qword ptr [nvlddmkm+0x7745f8 (fffff806`44ad45f8)]  <fffff8062b8801a0>
+  nt!KeWaitForMultipleObjects:
+    nt!KeWaitForMultipleObjects+0x26f 	cmp     r14d,r13d (цикл пока r13==r14 около 16 раз)
+    nt!KeWaitForMultipleObjects+0x272 	jb      nt!KeWaitForMultipleObjects+0x1fd  (переход выше пока ecnm условие строкой выше)
+   
+
+
+	fffff801`969c9823 e828f8ffff      call    serenum!SerenumDoEnumProtocol (fffff801`969c9050)  serenum!Serenum_ReenumerateDevices+0x30e
+		<nvAdapter: Device Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0005'>
+		nt!DbgUnLoadImageSymbolsUnicode
+
+	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+call  nvlddmkm+0xf0894  
+nvlddmkm+0x1e911f
+nvlddmkm+0x2263ee
+nvlddmkm+0x213f50
+nvlddmkm+0x20922b
+nvlddmkm+0x209feb
+nvlddmkm+0x201d60
+nvlddmkm+0x1e3732
+nvlddmkm+0x1e9eaf
+nvlddmkm+0x153db7
+nvlddmkm+0x129f2b
+nvlddmkm+0x12a079 call nvlddmkm+0x129630  <22 _ nvlddmkm+0x12a07d  call  nvlddmkm+0x129634>
+..................Драйвер 35 функция nvlddmkm+0x129630 установки eax=1300(2500)..................:
+     mov     eax,dword ptr [nvlddmkm!nvDumpConfig+0x49550]  	rax = 2500
+	...
+     call    nvlddmkm+0x149e7c 					rax=c0000034
+	...	
+     mov     ecx,dword ptr [rbx+0C630h]				rcx=2500
+     mov     ebp,1300h						rbp=1300
+     cmp     ecx,r12d  						r12=2100,ecx=2500
+     ja      nvlddmkm+0x129715 [br=1] переход по условию
+	...
+     cmp     ecx,2500h
+     jne     nvlddmkm+0x1299c1 [br=0]
+	...
+     mov     eax,dword ptr [rbx+0C630h]                        eax = 1300
+.......
+ nvlddmkm+0x129a13 call nvlddmkm+0x1444a4
+  nvlddmkm+0x1444d3 call nvlddmkm+0x144d50 (вход 1й раз)
+	Device Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0005'
+   rbp = 1300
+  nvlddmkm+0x1444d3 call nvlddmkm+0x144d50 (вход 2й раз)   
+  nvlddmkm+0x1444d3 call nvlddmkm+0x144d50 (вход 3й раз)
+   rbp = 1300
+   nvlddmkm+0x144db4 call nvlddmkm+0x774698 (nt!DbgPrintEx:)	
+     call    nt!vDbgPrintExWithPrefixInternal 
+       call    nt!RtlStringCbVPrintfA 
+ 	call    nt!vsnprintf
+         call    nt!vsnprintf_l
+	   call    nt!output_l 
+     nt!vDbgPrintExWithPrefixInternal+0x10b   в регистре rdi содержится адрес с заполненными даными Driver Model is 0x1300         
+	nt!vDbgPrintExWithPrefixInternal+0x136    call    nt!DebugPrint: 
+  	 nt!DebugPrint:
+ 		int     2Dh
+
+
+
+------------ Нахождение места DriverModel is 0x1300 или DriverModel is 0x2500-----------------------
+----------------------Движение от концу к началу в порядке стека--------------------------
+---------Конец------------------------
+nvAdapter:              ***** CNvLAdapter* ffffc609a41cb000 -> DriverModel is 0x1300 ******
+ 			***** CNvLAdapter* ffffa8067b5d8000 -> DriverModel is 0x1300 *****
+nvlddmkm+0xf0a48      22_nvlddmkm+0xf0af4
+35_nvlddmkm+0xf0894   22_nvlddmkm+0xf0940 проверить     35_[rcx+9674h=00] | 22_[rcx+9674h=01]
+
+22_nvlddmkm!nvDumpConfig+0x229a0d	call ^
+22_nvlddmkm!nvDumpConfig+0x2298b4			35_[rcx+9674h=00] | 22_[rcx+9674h=01]
+22_nvlddmkm!nvDumpConfig+0x2480f1	call ^
+22_nvlddmkm!nvDumpConfig+0x248044	                35_[rcx+9674h=00] | 22_[rcx+9674h=01]
+
+35_nvlddmkm!nvDumpConfig+0x2480d7
+
+dxgkrnl!DpiDxgkDdiStartDevice				35_[rdx+9674h=??] | 22_[rdx+9674h=01]
+dxgkrnl!DpiFdoStartAdapter+0x589	call ^
+dxgkrnl!DpiFdoStartAdapter+0x57b        mov     rdx,qword ptr [r14+30h]  !rdx заполняется!
+dxgkrnl!DpiFdoStartAdapter+0x42e	22_ ptr[r14+30]+9674h=01 01 
+dxgkrnl!DpiFdoStartAdapter		22_ ptr[rsi+30]+9674h=01 01
+dxgkrnl!DpiFdoStartAdapterThreadImpl+0x303 call  ^
+dxgkrnl!DpiFdoStartAdapterThreadImpl+0x2f7
+dxgkrnl!DpiFdoStartAdapterThreadImpl+0x247 на 4й раз rsi+30 записывается правильный адрес ffffb20cd23a8000
+dxgkrnl!DpiFdoStartAdapterThreadImpl
+nt!PspSystemThreadStartup+0x4d   rdi c 3й попытки содержит правильный адрес ffffb20cd23a8000
+nt!PspSystemThreadStartup        rdx c 3й попытки содержит правильный адрес ffffb20cd23a8000
+nt!KiStartSystemThread+0x23:
+1й вызов: содержание памяти уже заполнено ffffb20cd23a8000+9674h=01 01
+3й вызов:Содержание регистра rsp (стека) nt!KiStartSystemThread+0x23 (3й вызов)
+	ffffb20cd23a8000 (правильный адрес) ffffb20cd23a8000+9674h=01 01
+	fffff80544a14b58 nvlddmkm+0x124b58
+	fffff8052ad559b0 nt!PspSystemThreadStartup
+
+nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+---------Начало----------------
+
+
+1.Driver Registry Path
+2.Device Registry Path
+3.DriverModel is 0x2500
+
+
+
+------CPP    CPP         CPP------------------------------------------------------------------
+
+Прямой порядок вызова функий
+nvdm.cpp: DriverEntryHelper(
+// Try to start driver debugging
+    if (NT_SUCCESS(Status) && NT_SUCCESS(Status = DEBUG_START(&g_DebugData)))
+	PF("Driver Registry Path = '%s'", ANSIRegistryPath.Buffer);
+
+nvdm.cpp:1439	if (canCreateHCloneLayer()) 
+nvdm.cpp:1457	     CreateAndInitializeHCloneLayer();	
+HClone.cpp:6030		void CreateAndInitializeHCloneLayer();
+HClone.cpp:6049		   pHClone = CHClone::createInstance();
+HClone.cpp:44    		CHClone::createInstance()
+HClone.cpp:360			  NTSTATUS escapeHClone(){
+HClone.cpp:400		            getHClone()->escapeSetSurfaceInfoAndModeset(pEscData);
+HClone.cpp:1343			    CHClone::escapeSetSurfaceInfoAndModese(){
+HClone.cpp:71	        		CHClone::CalcBandwidthforRM(bool bReset)
+HClone.cpp:155                     case NV2080_CTRL_BUS_INFO_PCIE_LINK_CAP_MAX_SPEED_2500MBPS:        linkSpeed = 250;
+
+nvdm.cpp:1436: pDriverObject->DriverExtension->AddDevice = NvAddDevice;
+nblFilter:540 isTeslaComputrDevice(){ // Check that this GPU is a Tesla compute device 
+nblFilter:719	for (ULONG ulDevIndex = 0; ulDevIndex < countof(c_TeslaComputeDevIDs); ulDevIndex++)}
+
+
+ASM + <CPP>  ---- Адреса всех вызываемых ос.системных функций nt! лежат nvlddmkm+0x774000 !!!!
+
+Точный порядок вызова:  
+1) nvlddmkm!nvDumpConfig+0xa86c88 	<DriverEntryHelper()>
+	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+2) nvlddmkm!nvDumpConfig+0x22a49c  	<cacheBusInfo()>
+3) nvlddmkm+0x197644 			<AddDevice() = NvAddDevice()> 
+4) nvlddmkm!nvDumpConfig+0x22706c	<NvDM_AddDevice()>
+        Device Registry Path = '\REGISTRY\MACHINE\S..
+
+Анализ поведения  от EntryPoint
+nt!PnpCallDriverEntry+0x47
+Функция точки входа <DriverEntryHelper>
+ 35_nvlddmkm!nvDumpConfig+0xa86c88 <DriverEntryHelper>
+ 35_nvlddmkm!nvDumpConfig+0xa8755f 			call    35_nvlddmkm+0x144454
+ 35 nvlddmkm+0x144db4 					call    qword ptr [nvlddmkm+0x774698]
+   	nvLDDMkm: Driver Registry Path = '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\nvlddmkm'
+ 35 nvlddmkm!nvDumpConfig+0xa876aa  call    nvlddmkm!nvDumpConfig+0x22a49c (заполняется) <call cacheBusInfo()>
+ 	Функция <void cacheBusInfo()>из nvdm.cpp ..здесь заполняются параметры шины.. и
+         =FOR1= nvlddmkm!nvDumpConfig+0x22a501   // nwdm.cpp:2274 for (; i < NumObjects; ++i) {
+nvdm.cpp:2281 	     getPciInterface()
+nvdm.cpp:2286           GetBusData() 		nvlddmkm!nvDumpConfig+0x22a549          call    r10   <GetBusData() или asm: pci+0x1010-> после вызова в [rsp+40] становится вся инфа об адаптере
+
+Анализ вызовов GetBusData():  //Также контроль ТОЧЕК на операций чтения из области PCI на функциях nt!HalpPciReadMmConfigUlong и записи на nt!HalpPciWriteMmConfigUlong
+	    pci!PciBusInterface_GetBusData+0x631 (pci+0x1641):  call  ACPI!AcpiWrapperReadConfig  (qword ptr [pci+0x3a80])//в этой функции идет заполнение данных в памяти по адресу pci+0x33860
+	     ACPI!AcpiWrapperReadConfig+0x23:	call nt!HaliPciInterfaceReadConfig
+              nt!HaliPciInterfaceReadConfig+0x2d:   call    nt!HalpPCIConfig 
+		nt!HalpPCIConfig+0xa2: 	    call    nt!HalpPciAccessMmConfigSpace 
+		   nt!HalpPciAccessMmConfigSpace+0x47:  call    nt!HalpPciGetMmConfigPhysicalAddress
+		   nt!HalpPciAccessMmConfigSpace+0x54:	call    nt!HalpPciMapMmConfigPhysicalAddress		//p90 физ.адрес=f8100000
+			после вызова функции nt!HalpPciMapMmConfigPhysicalAddress- на точке nt!HalpPciAccessMmConfigSpace+0x59 в строке адрес,по которому записаны параметры pci устройства yстанавливается в регистре  rax = временно fffff7e9c0002000
+		   nt!HalpPciAccessMmConfigSpace+0x7d:  call    nt!HalpPCIPerformConfigAccess
+			nt!HalpPCIPerformConfigAccess+0x55:  call    nt!guard_dispatch_icall	в rdx и rbp и  rcx?
+				nt!HalpPciReadMmConfigUlong+0x3:  mov     eax,dword ptr [rcx+r9]  в rcx есть инфа по pci адаптеру в области данных системы Копируется из области PCI  в область памяти по 4 байта
+
+		pci+0x15f0:  pcimemcpy() call pci+0x11d00  из rdx=&[pci+0x33860] в rax>                 
+
+		          mov     edx,0Eh  -   0Eh это DevicePropertyBusNumber = 0xe из файла <wdm.h>
+ 		             call    qword ptr [nvlddmkm+0x774608]   nt!IoGetDevicePropert
+ 				mov     edx,10h  -   10h это DevicePropertyAddress= 0x10 из файла <wdm.h>
+ 	 			call    qword ptr [nvlddmkm+0x774608]   nt!IoGetDevicePropert
+ 					В [rsp] содержится информация по текущему адаптеру из списка:
+ 					mov     edi,dword ptr [rsp+3Ch]        edi = deviceAddress
+ 					mov     r11d,dword ptr [rsp+34h]       r11 = busNumber
+ 					shr     edi,10h       			<ULONG deviceNumber = (deviceAddress >> 16) & 0xffff;> 
+ 					test    r11d,r11d 
+nvdm.cpp:2292  if (NT_SUCCESS(IoGetDeviceProperty(... &deviceAddress, &resultLength))) 		nvlddmkm!nvDumpConfig+0x22a59d:  call    qword ptr [nvlddmkm+0x774608]
+nvdm.cpp:2293  {                                       deviceAddress=   			nvlddmkm!nvDumpConfig+0x22a5ab:  mov     edi,dword ptr [rsp+3Ch]	//01
+nvdm.cpp:2294   ULONG deviceNumber = (deviceAddress >> 16) & 0xffff; 				nvlddmkm!nvDumpConfig+0x22a5b4   shr     edi,10h			//01->0
+		busNumber=									nvlddmkm!nvDumpConfig+0x22a5af:  mov     r11d,dword ptr [rsp+34h]  	//01
+nvdm.cpp:2297   if ((busNumber == 0) &&							 	nvlddmkm!nvDumpConfig+0x22a5b7:  test    r11d,r11d 			//busNumber=1	
+nvdm.cpp:2297  				(deviceNumber == 0))					nvlddmkm!nvDumpConfig+0x22a5bc:  test    edi,edi
+
+
+
+          nvlddmkm!nvDumpConfig+0x22a719:cmp     r14d,20h        <nvAssert(ulGpuCount < MAX_DEVICES); MAX_DEVICES=20h>
+ 	Вся информация входе этой функции сохраняется в  g_GlobalData.pciBusInfo[ulGpuCount].pciCommonConfig это в [r15+0xCCh] = nvlddmkm!nvDumpConfig+0x494a8 
+         =FOR1=  nvlddmkm!nvDumpConfig+0x22a795  // nwdm.cpp:2357 конец for (; i < NumObjects; ++i) } 
+        nvlddmkm!nvDumpConfig+0x22a7a8:mov     dword ptr [nvlddmkm!nvDumpConfig+0x49570],r14d     <g_GlobalData.ulGpuCountFromBus = ulGpuCount;>
+        nvlddmkm!nvDumpConfig+0x22a7af:mov     dword ptr [nvlddmkm!nvDumpConfig+0x4b774],esi <g_GlobalData.ulBrCountFromBus = ulBrCount;>
+ 
+ Заполнение адресов глобальных Колбеков:
+ 1й адрес:
+ <nvdm.cpp:1030-> DriverEntryHelper():g_GlobalData.NvDDICallbacks.DxgkDdiAddDevice  = NvDM_AddDevice;>
+ nvlddmkm!nvDumpConfig+0xa8772f lea     rax,[nvlddmkm!nvDumpConfig+0x22706c ] //NvDM_AddDevice
+
+ 4й adress:
+ nvdm.cpp:1033			g_GlobalData.NvDDICallbacks.DxgkDdiStartDevice  = NvDM_StartDevice;
+ nvlddmkm!nvDumpConfig+0xa8775f	 lea     rax,[nvlddmkm!nvDumpConfig+0x2298b0] //NvDM_StartDevice;
+
+nvlddmkm!nvDumpConfig+0x87928 
+
+ 54адрес:
+  <nvdm.cpp:1090-> DriverEntryHelper():g_GlobalData.NvDDICallbacks.DxgkDdiUpdateActiveVidPnPresentPath> Заполнение 54го адреса глобальных Колбеков
+  nvlddmkm!nvDumpConfig+0xa87a22  mov     qword ptr [nvlddmkm!nvDumpConfig+0x4bdc8 (fffff807`7f4b9140)],rax
+
+ 94й адрес(true):
+  <nvdm.cpp:1157-> DriverEntryHelper(): if (g_GlobalData.bWDDMv22EnableSetTimingsDdi) >
+  nvlddmkm!nvDumpConfig+0xa87c68  mov     cl,byte ptr [nvlddmkm!nvDumpConfig+0x81602]
+  nvlddmkm!nvDumpConfig+0xa87c6e  test    cl,cl <is true?>
+  lea     rdx,[nvlddmkm!nvDumpConfig+0x1f0f08 (fffff807`7f65e280)]
+  nvlddmkm!nvDumpConfig+0xa87c79   mov     qword ptr [nvlddmkm!nvDumpConfig+0x4c028],rdx //94й адрес
+
+ 102й адрес(true): 
+  nvlddmkm!nvDumpConfig+0xa87ce2  test    cl,cl
+  nvlddmkm!nvDumpConfig+0xa87ce6 lea     rdx,[nvlddmkm+0xd5e9c (fffff807`7ec25e9c)]
+  nvlddmkm!nvDumpConfig+0xa87ced mov     qword ptr [nvlddmkm!nvDumpConfig+0x4c050 (fffff807`7f4b93c8)],rdx
+
+ 161 адрес(true):
+ <nvdm.cpp:1272-> DriverEntryHelper(): if (!(g_GlobalData.bEmulator & EMULATOR_OPTION_NO_DISP)) >
+
+ 182 адрес:
+ nvlddmkm!nvDumpConfig+0xa88118  mov     qword ptr [rbp+298h],rax
+
+ 212 адрес(true):
+ nvlddmkm!nvDumpConfig+0xa882c9  mov     qword ptr [rbp+478h],rax
+
+ 217 адрес:
+ <nvdm.cpp:1381-> DriverEntryHelper(): DriverInitData.DxgkDdiControlInterrupt3   = LDDM_ControlInterrupt3; //217>
+ nvlddmkm!nvDumpConfig+0xa88315: mov     qword ptr [rbp+3F8h],rax
+ 
+ <nvdm.cpp:1401-> DriverEntryHelper(): InitializeModsMode(&DriverInitData);>
+ nvlddmkm!nvDumpConfig+0xa8831c   call    nvlddmkm!nvDumpConfig+0xa8a82c
+ 
+<nvdm.cpp:1407-> DriverEntryHelper():  memcpy_s(&g_GlobalData.pDxgkrnlDispatch[0],sizeof(g_GlobalData.pDxgkrnlDispatch),pDriverObject->MajorFunction[0]) // pDriverObject->MajorFunction[ulFunction]  = NvDispatch;>
+ nvlddmkm!nvDumpConfig+0xa8832b  lea     r15,[nvlddmkm+0x197a1c ] //установка указателя на функцию DRIVER_DISPATCH NvDispatch();
+
+ <nvdm.cpp:1412-> DriverEntryHelper(): g_GlobalData.pDxgkrnlAddDevice  = pDriverObject->DriverExtension->AddDevice;>
+ nvlddmkm!nvDumpConfig+0xa88337  lea     rdx,[nvlddmkm+0x197644]  //AddDevice = NvAddDevice
+
+ <nvdm.cpp:1413> DriverEntryHelper(): g_GlobalData.pDxgkrnlUnload  = pDriverObject->DriverUnload; //
+ nvlddmkm!nvDumpConfig+0xa8833e lea     r8,[nvlddmkm+0x199dcc ] //DriverUnload = NvUnload;
+
+ -- <nvdm.cpp:1416> Начало FOR Setup default dispatch handlers
+ -- for (int ulFunction = 0; ulFunction <= IRP_MJ_MAXIMUM_FUNCTION; ulFunction++)
+ -- в этом цикле заполяется 28 указателей   g_GlobalData.pNvDispatch[0..27]  и g_GlobalData.pNvDispatch[0..27] одними и теми же функциями
+
+  <nvdm.cpp:1418> DriverEntryHelper(): g_GlobalData.pNvDispatch[ulFunction]= NvDispatchPassthrough;
+  nvlddmkm!nvDumpConfig+0xa8843a lea     rcx,[nvlddmkm+0x197b38] // NTSTATUS NvDispatchPassthrough
+        nvlddmkm+0x1208f0 nvAssert()
+        nvlddmkm+0x199f50 getAdapterAndAcquireRemoveLock()
+  	
+  <nvdm.cpp:1419> DriverEntryHelper(): g_GlobalData.pNvMgmtDispatch[ulFunction] = NvMgmtDispatchInvalidDeviceRequest;
+  nvlddmkm!nvDumpConfig+0xa88448 lea     rcx,[nvlddmkm+0x199d28] // NTSTATUS NvMgmtDispatchInvalidDeviceRequest;
+	nvlddmkm+0x774380  nt!IofCompleteRequest()
+ 
+ --<nvdm.cpp:1416> Конец FOR Setup default dispatch handlers
+ --nvlddmkm!nvDumpConfig+0xa8845d           cmp     rax,rcx  //Если указатель на первую фуннкцию Не РАВЕН указателю на последнюю функцию (счетчик IRP_MJ_MAXIMUM_FUNCTION=1b)
+ --                                         jle     nvlddmkm!nvDumpConfig+0xa8843a //переход вверх по коду к заполнению нового указателя
+	
+ <nvdm.cpp:1422> DriverEntryHelper(): g_GlobalData.pNvDispatch[IRP_MJ_PNP] = NvDispatchPnp (  nvlddmkm+0x197c28)
+ nvlddmkm+0x197c28 = NvDispatchPnp()
+ 
+ <nvdm.cpp:1423> DriverEntryHelper(): g_GlobalData.pNvDispatch[IRP_MJ_POWER= NvDispatchPower      (nvlddmkm+0x198194 );
+ <nvdm.cpp:1426> DriverEntryHelper(): g_GlobalData.pNvMgmtDispatch[IRP_MJ_CREATE]         = NvMgmtDispatchCreateClose;  (nvlddmkm+0x198b78)
+ <nvdm.cpp:1427> DriverEntryHelper(): g_GlobalData.pNvMgmtDispatch[IRP_MJ_CLOSE]          = NvMgmtDispatchCreateClose;  (nvlddmkm+0x198b78)
+ <nvdm.cpp:1428> DriverEntryHelper(): g_GlobalData.pNvMgmtDispatch[IRP_MJ_DEVICE_CONTROL] = NvMgmtDispatchDeviceControl;(nvlddmkm+0x198c08)
+
+
+ <nvdm.cpp:1439> DriverEntryHelper():  if (canCreateHCloneLayer()) (nvlddmkm+0x17ee44)
+ nvlddmkm!nvDumpConfig+0xa884bd  call    nvlddmkm+0x17ee44  //(canCreateHCloneLayer
+	nvlddmkm+0x11ff2 NvIsWin10OrLater()  // Disable the HCLONE feature from Win10 and above.
+	
+Конец функции точки входа <DriverEntryHelper>
+
+
+
+========24.09.2022===========NvDM_AddDevice()=========
+Иерархия вызовов от колбэк функции <NvDM_AddDevice()>   nvlddmkm!nvDumpConfig+0x22706c
+nvdm.cpp:2418  	    pAdapter = CNvLAdapter::createInstance(PhysicalDeviceObject);
+nvlAdapter.cpp:1740    if (!NT_SUCCESS(pAdapter->initialize()))
+nvlAdapter.cpp:2451       Status = CNvLBaseAdapter::initialize();  
+nvlAdapter.cpp:342            pciInterface = getPciInterface(getPhysicalDeviceObject());
+nvlAdapter.cpp:349	      setPciInterface(pciInterface);
+
+=====================путь до установки PCI_EXPRESS_GEN2=====
+g_GlobalData.NvDDICallbacks.DxgkDdiCreateContext                   = NvLDDM_CreateContext;//31  
+nvlddm.cpp:1239   NvLDDM_CreateContext(HANDLE hDevic..){ 					nvlddmkm!nvDumpConfig+0x1ea558
+nvlddm.cpp:1266    Status = pDevice->createContext(pCreateContext);				nvlddmkm!nvDumpConfig+0x1ea658: call nvlddmkm!nvDumpConfig+0x2073e0
+nvlContext.cpp:1343 CNvLDevice::createContext(DXGKARG_CREATECONTEXT* pCreateContext){		nvlddmkm!nvDumpConfig+0x2073e0
+nvlContext.cpp:1471  pContext = createContextInstance(pCreateContext, &CreateContextData);	nvlddmkm!nvDumpConfig+0x2074ba:  call    nvlddmkm!nvDumpConfig + 0x207608
+nvlContext.cpp:793    static CNvLContext* createContextInstance(){				  nvlddmkm!nvDumpConfig + 0x207608
+nvlContext.cpp:803     CNvLContext *pContext = CNvLContext::createInstance(pCreateContext, pCreateContextData); nvlddmkm!nvDumpConfig+0x207646: call    nvlddmkm!nvDumpConfig + 0x207df0
+nvlContext.cpp:97       CNvLContext::createInstance(DXGKARG_CREATECONTEXT* pCreateContext, CREATE_CONTEXT_DATA* pCreateContextData){nvlddmkm!nvDumpConfig + 0x207df0
+
+nvlContext.cpp:116  CNvLContextKepler()     nvlddmkm!nvDumpConfig+0x207eab:    call    nvlddmkm!nvDumpConfig+0x22d2b0  
+nvlContext.cpp:128 if (pContext != NULL)    nvlddmkm!nvDumpConfig+0x207f03: call    nvlddmkm!nvDumpConfig+0x23af94  {xor eax,eax} eax=94f92660	 
+nvlContext.cpp:131    if (NT_SUCCESS(pContext->initializeProfileAndDebug())) ???
+nvlContent.cpp:134     if (pCreateContext->Flags.SystemContext)       nvlddmkm!nvDumpConfig+0x207f14: mov     eax, dword ptr[r13 + 10h]  {eax=5}
+		       иначе  переход на else см.  nvlContext.cpp:159 nvlddmkm!nvDumpConfig+0x207f1b: je      nvlddmkm!nvDumpConfig+0x207fbb	  
+nvlContent.cpp:137	  pContext->setContextType(ContextSystem);    nvlddmkm!nvDumpConfig+0x207f26: call    nvlddmkm!nvDumpConfig+0x20b148 {ContextSystem=cType=edx=0;m_contextType=ptr[rcx+84h]=0xAh; => m_contextType = cType=0; return true=bl=1}
+nvlContext.cpp:147	  if (pAdapter->useWDDM20()&& pAdapter->getPager()->getTilePoolComptagMgr() != NULL) nvlddmkm!nvDumpConfig+0x207f5c: cmp dword ptr[rsi + 0C630h], 2000h
+nvlContext.cpp:149	    allocCbcCleanInvalidateWarResources(pDevice);                                    nvlddmkm!nvDumpConfig+0x207f7b: call    nvlddmkm+0x16e890  (дошел до точки!))))
+nvlContext.cpp:153	  if (pAdapter->useWDDM21()&& vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv )          nvlddmkm!nvDumpConfig+0x207f8d: cmp dword ptr[rsi + 0C630h], 2100h
+   выход  из if (NT_SUCCE.. по второй проверке        pCreateContext->Flags.SystemProtectedContext	     mov  eax,dword ptr [r13+10h] ; test    al,8 {al=5} условие не срабатывает! и переход на конец:  nvlddmkm!nvDumpConfig+0x207fa3:  je  nvlddmkm!nvDumpConfig+0x209311
+nvlContext.cpp:159   Обработка else от {if (pCreateContext->Flags.SystemContext)} //Not the system context// nvlddmkm!nvDumpConfig+0x207fbb
+ 	Адреса переменных:
+	pCreateContext->pPrivateDriverData 		ptr [r13+18h] 
+        pCreateContext->PrivateDriverDataSize		ptr [r13+20h] 
+
+14 nvlContext.cpp:259 VALIDATION_LOG_DPF(..			 nvlddmkm!nvDumpConfig+0x2080d6:  call    nvlddmkm+0x1445f0
+13 nvlContext.cpp:291 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x20846e:  call    nvlddmkm+0x1445f0
+12 nvlContext.cpp:311 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2084c3:  call    nvlddmkm+0x1445f0
+11 nvlContext.cpp:326 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208714:  call    nvlddmkm+0x1445f0
+10 nvlContext.cpp:340 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208800:  call    nvlddmkm+0x1445f0   
+9  nvlContext.cpp:371 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208935:  call    nvlddmkm+0x1445f0   
+8  nvlContext.cpp:399 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208b34:  call    nvlddmkm+0x1445f0   
+7  nvlContext.cpp:416 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208c58:  call    nvlddmkm+0x1445f0   
+
+nvlContext.cpp:448       pContext->setLockPexGen2WAR(true);
+nvlContext.cpp:449       pAdapter->lockPexGen2WAR(true);	nvlddmkm!nvDumpConfig+0x208cff:   call    nvlddmkm+0xeb964
+	#define NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2         NV2080_CTRL_CMD(PERF, 0x8B)
+									      nvlddmkm+0xeb9e7:   mov     r8d,2080208Bh		// NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2=2080 020 8B
+	nvlAdapter.cpp:15602        if (!pChannel->rmControl(pChannel->hSubDevice(ulEngine), NV2080_CTRL_CMD_PERF_LOCK_PEX_GEN2,...   nvlddmkm+0xeb9f8:   call    nvlddmkm+0x150350	
+если не получится надо искать вызов функции NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS в области nvapiEscape, это вызывается из Система->NvMgmtDispatchDeviceControl()-> nvapi_Escape(...)[nvlFilter.cpp:2758] 
+и далее идем в реализацию nvapiEscape.cpp:30732
+
+6  nvlContext.cpp:466 VALIDATION_LOG_DPF(..			 nvlddmkm!nvDumpConfig+0x208dee:  call    nvlddmkm+0x1445f0  
+5  nvlContext.cpp:481 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208e01:  call    nvlddmkm+0x1445f0  
+4  nvlContext.cpp:491 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x208f00:  call    nvlddmkm+0x1445f0 
+3  nvlContext.cpp:525 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x209003:  call    nvlddmkm+0x1445f0 
+2  nvlContext.cpp:542 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2091ca:  call    nvlddmkm+0x1445f0 
+1  nvlContext.cpp:556 VALIDATION_LOG_DPF(..   			 nvlddmkm!nvDumpConfig+0x2092b4:  call    nvlddmkm+0x1445f0
+nvlContext.cpp:564 pContext->setContextType(ContextKernel); 	 nvlddmkm!nvDumpConfig+0x2092d8:  call    nvlddmkm!nvDumpConfig+0x20b148
+nvlContext.cpp:584 if (pAdapter->useWDDM20()... 		 nvlddmkm!nvDumpConfig+0x209311:  cmp     dword ptr [rsi+0C630h],edi
+<-24.09.2022
+================================================================================================================================
+15.10.2022-> работа nvapiEscape.cpp попытка вызова команды NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS  
+nvapiEscape.cpp:30732     EXTERN_C BOOL nvapi_Escape(DRIVER_STATE_TYPE *pDrvState,ULONG iEsc, ULONG cjInOut, VOID *pvInOut)
+nvapiEscape.cpp:31584     rmParams.busSpeed = NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS;
+nvapiEscape.cpp:31593     rmStatus = NvControl(DRIVER_HANDLE, g_nvapi.hRmClient, pPhysicalGpu->rmSubDeviceObjectID,NV2080_CTRL_CMD_BUS_SET_PCIE_SPEED,&(rmParams), sizeof(rmParams));
+
+
+#define NV2080_CTRL_CMD_BUS_SET_PCIE_SPEED       NV2080_CTRL_CMD(BUS, 0x05)
+#define NV2080_CTRL_BUS_SET_PCIE_SPEED_8000MBPS                    (0x00000003)
+
+
+<-15.10.2022 
+========================================================
+19.10.2022 -> Ищем вызов pci!PciBusInterface_SetBusData
+nvlddm.cpp:2853 NvDM_StartDevice (nvlddmkm!nvDumpConfig+0x2298b0 - точка входа в функцию NvDM_StartDevice()  в колбэк DdiStartDevice() от виндовса)
+nvlddm.cpp:2892 Status = pAdapter->startDevice()	nvlddmkm!nvDumpConfig+0x229a09: call nvlddmkm+0xf0894
+....
+ nvlInit.cpp:972 ...Status = buildDeviceInfo()          nvlddmkm+0x129e0b: 		call nvlddmkm+0x12756c
+  nvInit.cpp:3335 ...Status = enableDevice()		nvlddmkm+0x127668:		call nvlddmkm+0x128064
+   nvInit.cpp:3368 ...m_PciInterface->SetBusData(m_PciInterface->Context(...)		nvlddmkm+0x1280b0: call [rax+30]= call pci+0xcb30	
+	в r8 - содержится &m_AdapterData.PCIConfig.Command + 4h
+
+Interface_SetBusData вызывается также от NvDM_SetPowerState:
+
+nwdm.cpp:3994 NvDM_SetPowerState 							nvlddmkm!nvDumpConfig+0x229598
+ nwdm.cpp:4020 Status = pAdapter->setPowerState(..)					nvlddmkm!nvDumpConfig+0x2296bb: call   nvlddmkm+0x140cf8
+  nvlPower:260 CNvLAdapter::setPowerState()  						nvlddmkm+0x140cf8
+   nvlPower:302 status = enableDevice(); 						nvlddmkm+0x140d68: call nvlddmkm+0x128064
+    nvInit.cpp:3368 ...m_PciInterface->SetBusData(m_PciInterface->Context(...)		nvlddmkm+0x1280b0: call [rax+30]= call pci+0xcb30	
+========================================================
+28.09.2022 ищем адрес !rmControl! через nvlddm.cpp:2853 NTSTATUS NvDM_StartDevice   ( nvlddmkm!nvDumpConfig+0x2298b0 )     
+	[nvRegistryReadFTS(...)= nvlddmkm+0x17363c]
+	[NV_ETW_INFO(...)=  nvlddmkm+0x148990
+nwdm.cpp:2892 Status = pAdapter->startDevice() 	nvlddmkm!nvDumpConfig+0x229a09: call nvlddmkm+0xf0894
+nvlAdapter.cpp:2841   NTSTATUS  CNvLAdapter::startDevice(PDXG...){ 
+	[createProcessNotify()=nvlddmkm+0x135630]
+ nvlAdapter.cpp:2876 if (getInterfaceVersion() >= DXGKDDI_INTERFACE_VERSION_WIN8) //nvlddmkm + 0xf0961: cmp     dword ptr [rax+4],300Eh ds:002b
+ nvlAdapter.cpp:2889 nvAssert(m_pMCMgr==NULL); // nvlddmkm+0xf0994:
+ nvlAdapter.cpp:2919  if (.... = startEventThread()...)				  // nvlddmkm+0xf0a2c: call  nvlddmkm+0x125f34    { nvlddmkm+0x124b38 =EventRoutine() nvlEvent.cpp:906  }
+ nvlAdapter.cpp:2926  Status = setupAdapter(bUseOsPostDeviceAsPrimary, 		  // nvlddmkm+0xf0a48: call [rax+50]	 = nvlddmkm+0x129c24
+  nvlInit.cpp:855  NTSTATUS CNvLAdapter::setupAdapter(    //nvlddmkm+0x129c24
+   nvlInit.cpp:972 ...Status = buildDeviceInfo()... 		nvlddmkm+0x129e0b: call    nvlddmkm+0x12756c  !!!!!!!!!!!!!После вызова появляется информация об РЕГИСТРАМ по адресу [r8]!!!!!!!!!!!
+     nvlInit.cpp:3266 buildDeviceInfo(){ 				--------nvlddmkm+0x12756c-----
+       nvlInit.cpp:3335 ...Status = enableDevice()))				nvlddmkm+0x127668: call nvlddmkm+0x128064
+         nvlInit.cpp:3352   CNvLBaseAdapter::enableDevice(void) {  		--------nvlddmkm+0x128064
+	 nvlInit.cpp:3368   m_PciInterface->SetBusData  				nvlddmkm+0x1280b0: call [rax+30]=pci+CB30  (win: pci!PciBusInterface_SetBusData())
+       nvlInit.cpp:3338   if (NT_SUCCESS(Status = buildAccessRanges()		nvlddmkm+0x127674: call    nvlddmkm+0x127368
+       nvlInit.cpp:3341   Status = mapAccessRanges(); 				nvlddmkm+0x127680: call    nvlddmkm+0x129578 
+         nvlInit.cpp:3520   CNvLBaseAdapter::mapAccessRanges(void)		--------nvlddmkm+0x129578---------
+         nvlInit.cpp:3530   RegisterBaseAddress.QuadPart= .[NV_PHYSICAL_BASE_ADDRESS].  nvlddmkm+0x12958f: mov     rcx,qword ptr [rcx+0DD0h]   //rcx=f6000000
+         nvlInit.cpp:3530   FrameBufferBaseAddress.QuadPart=.[NV_PHYSICAL_DFB_ADDRESS]. nvlddmkm+0x129596: mov     ebp,dword ptr [rdi+0DD8h]   //ebp=1000000
+         nvlInit.cpp:3535   RegisterLength = ...NV_PHYSICAL_BASE_ADDRESS].RangeLength   nvlddmkm+0x12959c: mov     rsi,qword ptr [rdi+0DF0h]   //rsi=10000000
+         nvlInit.cpp:3535   ullFrameBufferLength= .NV_PHYSICAL_DFB_ADDRESS].RangeLength nvlddmkm+0x1295a3: mov     rbx,qword ptr [rdi+0DE8h]   //rbx=e0000000
+         nvlInit.cpp:3547   m_AdapterData.NvDeviceInfo.NvRegisterBase=.MmMapIoSpace(..) nvlddmkm+0x1295c7: call    qword ptr [nvlddmkm+0x774508] = nt!MmMapIoSpace  !!!!!!!!!!!!!После вызова появляется информация об РЕГИСТРАМ в rax !!!!!!!!!!!
+
+  nvlInit.cpp:1004   if (!rmAlloc(NV01_NUcall        		nvlddmkm+0x129ed8: call nvlddmkm+0x14ca40
+  nvlInit.cpp:1019   if (!rmControl(hClient(), NV0000_CTRL_CMD_OS_SET_WRITE_COMBINE_POLICY, &Policy, sizeof(Policy)))  //nvlddmkm+0x129f1e     call    nvlddmkm+0x15026c
+  	nvlRm.cpp:1172  ::rmControl(&params, kernelMode);	// nvlddmkm+0x150309:    call    nvlddmkm+0x15006c
+		nvlRm.cpp:5219     Nv04ControlKernel(pParams); //nvlddmkm+0x150104: call nvlddmkm+0x1dbb30    
+  nvlInit.cpp:1026   if (!rmSetupNvAdapter())        		//nvlddmkm+0x129f26:    call    nvlddmkm+0x153d90   //не проходит проверку измененног бивиса!
+	nvlRm.cpp:210  ....osdlRmSetupNvAdapter(...)  		//nvlddmkm+0x153db2:    call    nvlddmkm+0x1e9e24
+	  osdl.c:3987	bRet = RmSetupNvAdapter(...); 		//nvlddmkm+0x1e9eaa:    call    nvlddmkm+0x1e3284
+		osinit.c:1601 gpumgrRegisterGpuId(...)	 	//nvlddmkm+0x1e363f:	call    nvlddmkm+0x204634
+		!!! osinit.c:1605	NV_PRINTF(LEVEL_ERROR, "*** cannot.. 	// nvlddmkm+0x1e3655: 	call nvlddmkm+0x1f7c68
+		!!! osinit.c:1607	goto done                    		// nvlddmkm+0x1e3666    jmp  nvlddmkm+0x1e3d97  - в случае любой ошибки прыжок на конец (goto done)
+		osinit.c:1611 gpumgrAllocGpuInstance(...)  	//nvlddmkm+0x1e3666:	call    nvlddmkm+0x201bd8  		пока проходим!!!
+		osinit.c:1620 rmGpuLockAlloc(...)		//nvlddmkm+0x1e367d:    call    nvlddmkm+0x21c534 		пока проходим!!!
+		osinit.c:1629 gpumgrCreateDevice(...)		//nvlddmkm+0x1e36a4:    call    nvlddmkm!nvDumpConfig+0xdacc8	пока проходим!!!
+		osinit.c:1646 osMemSet(...) 			//nvlddmkm+0x1e36e4:    call    nvlddmkm+0x1d8464 
+		osinit.c:1647 osLoadAttachArgs(...)		//nvlddmkm+0x1e36f0:    call    nvlddmkm+0x1e4ac0 
+		osinit.c:1650 rmGpuLockHide(...)		//nvlddmkm+0x1e36ff:    call    nvlddmkm+0x21c8bc 		пока проходим!!!
+		osinit.c:1675 gpumgrAttachGpu(...)		//nvlddmkm+0x1e372d:	call    nvlddmkm+0x201c2c		пока проходим!!!  !!у не мода = 02 =>!! 1АЯ ТОЧКА  osDevReadReg032=nvlddmkm+0x1e7848 !!!ПРОВЕРИТЬ НАЛИЧИЕ 02 по адр [r8]+2240C 
+								nvlddmkm+0x1e3982: je      nvlddmkm+0x1e39c4 [br=1]
+								nvlddmkm+0x1e39d7: je      nvlddmkm+0x1e3a35 [br=1]
+								nvlddmkm+0x1e3a9d: jne     nvlddmkm+0x1e3aca [br=1]
+								nvlddmkm+0x1e3b08: jne     nvlddmkm+0x1e3b1a [br=1]
+								nvlddmkm+0x1e3b43: je      nvlddmkm+0x1e3b7d [br=1]
+		?osinit.c:1921 osInitScalability(...)		nvlddmkm+0x1e3bf6: call    nvlddmkm+0x1e48bc	-> eax=0 	test eax,eax = true
+								nvlddmkm+0x1e3c00: jne     nvlddmkm+0x1e36bf [br=0]  [код выхода, который был выше rmGpuLockFree(),goto done;]
+								nvlddmkm+0x1e3c59: test    al,2 [al=0] тест = fail , переход показан ниже на nvlddmkm+0x1e3c70
+								nvlddmkm+0x1e3c5b: je      nvlddmkm+0x1e3c70  [br=1]
+   	        osinit.c:1975 status = RmInitNvHal(...)		nvlddmkm+0x1e3c8c: call    nvlddmkm+0x1e2ea0  //После этого КОЛа ниже не проходим по условию   test    eax,eax [eax=ffff] и далее куча goto на выход
+                    osinit.c:715  RmInitNvHal()			-----------nvlddmkm+0x1e2ea0---
+		    osinit.c:734 status = _RmExtractAndInitVbiosImage(...) //Функция статическая - тело переносится в код без КОЛов			
+      	            !osinit.c:709 status = vbiosInit(pGpu, pVbios)   nvlddmkm+0x1e2f21 call    qword ptr [rsi+178h]  (call nvlddmkm+0x337890)  !ПОЗЖЕ
+     	            osinit.c:704  status = vbiosExtractImage(...)   nvlddmkm+0x1e2f0f call    qword ptr [rsi+170h]  (call nvlddmkm+0x3353c8)
+                        objvbios.c:1670  vbiosExtractImage_IMPL(...)	---nvlddmkm+0x3353c8---	
+			objvbios.c:1696 osMemSet() 				//nvlddmkm+0x33544b:      call    nvlddmkm+0x1d8464
+			objvbios.c:1728 vbiosReadVbiosEnvironment_HAL(p..)	//nvlddmkm+0x3354d5: call    qword ptr [rbx+810h] (call nvlddmkm+0x340968)
+ 			objvbios.c:1752 if (pGpu->getProperty(...))		//nvlddmkm+0x3354fb: cmp     byte ptr [rdi+0A6Ch],sil       //getProperty(pGpu, PDB_PROP_GPU_REG_EXISTS_OVERRIDE_VBIOS))
+					else)))			nvlddmkm+0x335502:    je      nvlddmkm+0x33560b [br=1]    условие не срабатывает правильно, переходим много ниже:
+		       *objvbios.c:1809 if (!bFound&&(srcImageSize&&pSrcCopy))  //nvlddmkm+0x33560b:    cmp     dword ptr [rbp-40h],0	   yсловие не срабатывает правильно, переходим много ниже:
+					else)))			nvlddmkm+0x33560f:    je      nvlddmkm+0x3356e7
+		        objvbios.c:1826 if (bFound....)
+		        objvbios.c:1830 status = _vbiosRemoveImageIFR        	  nvlddmkm+0x335681:  call    nvlddmkm+0x4a4890  НЕ СРАБАТЫВАЕТ при первом заходе
+                        objvbios.c:1839 status = vbiosLocateExpansionRomImages(.. nvlddmkm+0x3356ae:  call    nvlddmkm+0x337de4	 НЕ СРАБАТЫВАЕТ при первом заходе
+
+                        objvbios.c:1855 if (!bFound...) //bFound = false при первом заходе
+                        objvbios.c:1857 status = vbiosLocateExpansionRomImages(.. nvlddmkm+0x335702:  call    nvlddmkm+0x337de4	  СРАБАТЫВАЕТ при первом заходе
+			    objvbios.c:5674 vbiosLocateExpansionRomImages(...)  	nvlddmkm+0x337de4
+			    objvbios.c:5731 rdSrc.type = ROM_IMG_READ_SRC_GPU_PROM;     nvlddmkm+0x337e3c:  dword ptr [rbp-49h],3
+			    objvbios.c:5732 rdSrc.src.pGpu = pGpu;                      nvlddmkm+0x337e43:  mov     qword ptr [rbp-41h],rcx
+ 			    objvbios.c:5734 if(vbiosSubVendorBiosStrapNoBios_HAL()||  1 nvlddmkm+0x337e47:   {call    qword ptr [rdx+830h] ;  test    al [al=0],al;  mov     r15d,0AA55h  jne     nvlddmkm+0x337e60 ...}
+                            objvbios.c:5734 продолжение || bUseImage) {}          				...  test    dil,dil [dil=0]; je      nvlddmkm+0x337e8 [br=1] , bUseImage = false} // //внутрь не заходим
+			    objvbios.c:5745 if(!(IS_SILICON()||IS_EMULATION()))  {}     nvlddmkm+0x337e84:	{al,byte ptr [rsi+0A00h]; test al,al;  cmp byte ptr[rsi+0A01h],r14b ;je  nvlddmkm+0x337eac [br=1]} // внутрь эксепшена не заходим идем дальше
+                            objvbios.c:5751 if (pVbios->pExpRomInfoList != NULL) {}	nvlddmkm+0x337eac:  cmp     qword ptr [rbx+1A70h],r14 [rbx+1A70h=0 ; r14=0] //внутрь не заходим
+			    objvbios.c:5756 status = bifReadGpuConfigReg_HAL(..)        nvlddmkm+0x337ec9:  call    nvlddmkm+0x24062c
+			    objvbios.c:5763 GPU_PCI_CFG_RD_DRF(....)            	nvlddmkm+0x337f0a:  call    nvlddmkm+0x24062c
+			    objvbios.c:5765 GPU_PCI_CFG_FLD_WR_DRF_DEF			nvlddmkm+0x337f33:  call    qword ptr [r12+3D8h]= vlddmkm+0x240fe8
+			    objvbios.c:5767 GPU_PCI_CFG_RD32(....)			nvlddmkm+0x337f48:  call    nvlddmkm+0x24062c
+		            objvbios.c:5769 romSig = romImgRdWord(..)	                nvlddmkm+0x337f5c:  call    nvlddmkm+0x334b54 
+                            objvbios.c:5770 if (status == NV_OK && !IS_VALID_PCI_ROM_SIG(romSig))
+			    objvbios.c:5793 pciBlck = romImgRdWord(rdSrc,..)   		nvlddmkm+0x337fa4: call    nvlddmkm+0x334b54 
+                            objvbios.c:5795  pciDataSig = romImgRdDword(rdSrc,.. )	nvlddmkm+0x337fbd: call    nvlddmkm+0x334a8c	возвращается результат в регистр [eax=0x52494350]  "PCIR" in dword format						 
+			    objvbios.c:5796 if (status == NV_OK && !IS_VALID_PCI_DATA_SIG(pciDataSig)) IS_VALID_PCI_DATA_SIG(sig) ((sig == PCI_DATA_STRUCT_SIGNATURE==0x52494350) ||(sig == PCI_DATA_STRUCT_SIGNATURE_NV) ||(sig == PCI_DATA_STRUCT_SIGNATURE_NV2)) Условие Выполняется - внутрь эксепшена не заходим идем дальше
+		 	    objvbios.c:5803  maxRomSize = romImgRdWord(rdSrc,...) nvlddmkm+0x338001:      call    nvlddmkm+0x334b54  возвращается результат в регистр [eax=79h]
+			    Начало БОЛЬШОГО ЦИКЛА:
+		 	    objvbios.c:5807 while (!done && status == NV_OK){ 		nvlddmkm+0x338013:  test    edi,edi // Начало БОЛЬШОГО ЦИКЛА: пока [edi]=done=0
+			    objvbios.c:5809  imgLen = romImgRdWord(rdSr..  		nvlddmkm+0x338034:  call    nvlddmkm+0x334b54 
+                            objvbios.c:5810  done = (romImgRdByte(rdSr..		nvlddmkm+0x33804d:  call    nvlddmkm+0x3349f4
+   			    objvbios.c:5814  ExtractPciDataExtension(rdSr...		nvlddmkm+0x33807b:  call    nvlddmkm+0x3340ec
+   			    objvbios.c:5816  vbiosSubVendorBiosStrapNoBios_HAL(...)	nvlddmkm+0x338086:  call    qword ptr [rbx+830h]
+			    objvbios.c:5828 type = romImgRdByte(rdSrc...		nvlddmkm+0x3380d6:  call    nvlddmkm+0x3349f4 
+           		    objvbios.c:5829 if ((type != 0x03) 				nvlddmkm+0x3380de:  cmp     al,3  //результат [1итерация al=0] - значит пока идем на мальенький циклик;[2ит. al=3] - циклик пропускаем
+			    objvbios.c:5830 ((npdeFlags & PCI_DATA_EXT_STRUCT_FLAGS_CHECKSUM_DISABLED) == 0) &&   nvlddmkm+0x3380e2: test    byte ptr [rbp+7Fh],4  //npdeFlags=&[rbp+7Fh] ; PCI_DATA_EXT_STRUCT_FLAGS_CHECKSUM_DISABLED=4 // проверка не прохит - по прежнему идем на мальенький циклик
+ 			    objvbios.c:5831 &&(checksumMarker <= currBlock)) 		nvlddmkm+0x3380e8:  cmp     dword ptr [rbp-21h],r15d  //currBlock = ptr [rbp-21h] = 00000079 ; checksumMarker=r15=0
+                            objvbios.c:5833 for (i = 0; i < imgLen*PCI_ROM_IMAGE_BLOCK_SIZE; i+=4)	---ЦИКЛИК- определия контрольной суммы --накапливаем регистр esi->  (imgLen=79h=121)*(PCI_ROM_IMAGE_BLOCK_SIZE = 512)=61952
+			    objvbios.c:5834 { 					        nvlddmkm+0x3380fb: lea     edx,[r12+r15]      Начало цикла определия контроьной суммы
+			    objvbios.c:5835	  tmpVal = romImgRdDword(...)           nvlddmkm+0x338108: call    nvlddmkm+0x334a8c //получаем 4 байта прямо из биоса в регистр [rax(eax)], начиная с точки АА55
+												call    [r14+180h] = nvlddmkm+0x1e782c \\ по адресу ptr[r8] + 300000 получаем начало БИВИСА с точки АА55 , например ptr [r8]=ffff957912a00000+300000
+			    objvbios.c:5835     checksum += (tmpVal & 0xFF) + ((tmpVal >>  8) & 0xFF) + ((tmpVal >> 16) & 0xFF) +  ((tmpVal >> 24) & 0xFF); //раскладываем и складываем полученное 32 бит число в регистр [edx]
+ 			    например: полученное EB79AA55 раскладываем	55h   + 	AAh		+         79h		  + EBh = 263h  и записываем его в [rsi (esi)]
+											nvlddmkm+0x33812d: add     esi,edx            //накапливаем регистр esi
+											nvlddmkm+0x33812f: cmp     r12d,edi	      //Условие цикла
+											nvlddmkm+0x338132  jb      nvlddmkm+0x3380fb  //Если условие не выполнено, то переход на начало
+											nvlddmkm+0x338134  mov     dword ptr [rbp-59h],esi //После цикла сбрасываем результат esi в память [rbp-59h]
+ 											<---циклик----
+											nvlddmkm+0x338146:   cmp     byte ptr [rbp-59h],0  //проверяем результат на 0:	результат mod !=0, a orig_==0 и далее у мода выход на обработку ошибки
+								       	       6 раз! 2 nvlddmkm+0x33814a:  je      nvlddmkm+0x338175  [у мода br=0 - далее печать об ошибке] [у орига br=1 - переход далее]
+			    objvbios.c:5854 status = osAllocMem((.. 			nvlddmkm+0x33817a:  call    nvlddmkm+0x1f6cb4 (
+ 			    objvbios.c:5858 pciBlckLen = romImgRdWord(rdS.. 		nvlddmkm+0x3381a4:  call    nvlddmkm+0x334b54  //резульататы [1ит. eax=18];[2ит. eax=1c]
+			    objvbios.c:5859 imgDataOffset = pciBlck + pciBlckLen;	nvlddmkm+0x3381b0:  eax,dword ptr [rbp-25h]   //imgDataOffset [eax]=[(eax=18) + (ptr [rbp-25h] =1a0)] = 1b8
+			    objvbios.c:5861 pciDataCodeType = romImgRdByte(rd		nvlddmkm+0x3381be:  call    nvlddmkm+0x3349f4  //резульататы [1ит. eax=0];[2ит. eax=3]
+			    objvbios.c:5862 if (pciDataCodeType == 0x70)		nvlddmkm+0x3381c3: cmp     al,70h		//[итерации: al=0,al=3] -условие в не выполняется
+			    objvbios.c:5888 pTmpExpRomInfo->blockOffset =..;		nvlddmkm+0x338245: mov     dword ptr [r15],eax  //eax=0
+			    objvbios.c:5889 pTmpExpRomInfo->blockSize = subI..;		nvlddmkm+0x33824d:  mov    dword ptr [r15+4],eax //eax=0xf200=61952
+			    objvbios.c:5890 pTmpExpRomInfo->imgDataOffset = imgDataO..; nvlddmkm+0x338254:  mov     dword ptr [r15+8],eax  //eax=1b8
+			    objvbios.c:5902 pFirstExpRomInfo = pTmpExpRomInfo;		nvlddmkm+0x33826e:  mov     r13,r15
+			    objvbios.c:5905 pExpRomInfo = pTmpExpRomInfo;		nvlddmkm+0x338271:  mov     qword ptr [rbp-9],r15
+			    objvbios.c:5918 pciBlck = romImgRdWord(r..			nvlddmkm+0x3382b6: call    nvlddmkm+0x334b54  //резульатат [eax=1c]
+			    objvbios.c:5920 pciDataSig = romImgRdDword(rd..		nvlddmkm+0x3382ce: call    nvlddmkm+0x334a8 c  //резульатат [eax=52494350]
+			    objvbios.c:5928 } //конец итерации While БОЛЬШОГО ЦИКЛА 	nvlddmkm+0x3382d8:   je     nvlddmkm+0x338013 //идем в начало
+		            Конец БОЛЬШОГО ЦИКЛА:
+                            objvbios.c:5930 if (bifReadGpuConfigReg_HAL(pGpu, 		nvlddmkm+0x338332: call    nvlddmkm+0x24062c 
+			    objvbios.c:5936 GPU_PCI_CFG_FLD_WR_DRF_NUM=bifWrite..RegHAL() nvlddmkm+0x33835f: call    qword ptr [r12+3D8h]= call nvlddmkm+0x240fe8
+                            objvbios.c:5941 pVbios->pExpRomInfoList = pFirstExpRomInfo;   nvlddmkm+0x33836b: mov     qword ptr [rbx+1A70h],r13
+                            objvbios.c:5941 return status [eax=0]  }			nvlddmkm+0x3383bf: c3              ret
+  			    Конец функции vbiosLocateExpansionRomImages()		
+		       objvbios.c:1858 if (status != NV_OK) 				nvlddmkm+0x335707   test    eax,eax : je nvlddmkm+0x335724
+=======================================v=v=v=v=исправление=v=v=v=v===========
+		       objvbios.c:1914 if (NV_OK == osReadRegistryVolatileSize (...)	nvlddmkm+0x33573f:  call    nvlddmkm+0x1e92b8   //возвр FF 
+		       objvbios.c:1916 status = _vbiosReallocateImageBuffer(...)	nvlddmkm+0x33574b:  call    nvlddmkm+0x1f6cb4  //Пока сюда не доходит на цикле W1!
+		       objvbios.c:1923	 if (NV_OK == osReadRegistryVolatile(pGpu,	nvlddmkm+0x335780:  call    nvlddmkm+0x1e9298 	//Пока сюда не доходит на цикле W1!
+		       objvbios.c:1930	  if (NV_OK != osReadRegistryVolatile(pGpu,	nvlddmkm+0x3357a5:  call    nvlddmkm+0x1e9298 	//Пока сюда не доходит на цикле W1!
+=======================================^=^=^=^=исправление=^=^=^=^===========
+
+	v	       objvbios.c:1872 tempStatus = vbiosCacheGetVbiosForDevice(...)    nvlddmkm+0x3357ea:  call    nvlddmkm+0x202844   //
+	v	       !objvbios.c:1875 NvU32 imageID2 = _vbiosCalcChecksum32()	        nvlddmkm+0x335802:  call    nvlddmkm+0x1f6db0  //!
+	v	       objvbios.c:1878 _vbiosReallocateImageBuffer()::portMemAllocNonPaged()0x33580c: call    nvlddmkm+0x1f6cb4
+=======================================^=^=^=^=исправление=^=^=^=^===========
+ 		       objvbios.c:1961 ..osReadRegistryDword(..)			nvlddmkm+0x3358ab:	  call    nvlddmkm+0x22638c
+		       objvbios.c:1964 	status = instReadVbiosSizeFromInst_HAL()	nvlddmkm+0x3358c8:	 call    qword ptr [r13+90h] = call nvlddmkm+0x2f8c5c //ffff
+ 		       objvbios.c:1977        status = _vbiosReallocateImageBuffer	static:	portMemFree()	call    nvlddmkm+0x1f6db0   ; portMemAllocNonPaged() call    nvlddmkm+0x1f6cb4
+ 		       objvbios.c:1984 tempStatus = instReadVbiosImageFromInst_HAL(..) 	nvlddmkm+0x335919:      call    qword ptr [r13+78h] = call nvlddmkm+0x2f8b88  //возвр ffff
+		       objvbios.c:1988  if (tempStatus == NV_OK)	                nvlddmkm+0x33591d:   test    eax,eax [eax=ff] тест не проходит и переходим на много ниже ( jne     nvlddmkm+0x335953)
+ 		       objvbios.c:2027 .NV2080_CTRL_BIOS_INFO_STATUS_INSTANCE_NOT_FOUND nvlddmkm+0x335953:	byte ptr [rbx+1B30h],32h //не нашли в реестре)
+ 		       objvbios.c:2047  bAttemptAcpi = TRUE; 				nvlddmkm+0x335988:        mov     r15b,1
+                     W1objvbios.c:2055  while(bAttemptAcpi || bAttemptRom)		nvlddmkm+0x335991 //пробуем искать в ACPI или в ROM
+				два длинных перехода (не исп ACPI метод)
+		       objvbios.c:2102 if (bAttemptRom)								test    r12b,r12b
+		       objvbios.c:2105 if ((NV_OK == vbiosReadImageSizeFromRom(..) 	nvlddmkm+0x335aad:     call    nvlddmkm+0x337de4
+		       objvbios.c:2117 	status = _vbiosReallocateImageBuffer		static:	portMemFree()	call    nvlddmkm+0x1f6db0   ; portMemAllocNonPaged() call    nvlddmkm+0x1f6cb4
+                       objvbios.c:2124  if (NV_OK == ExtractImageFromROM(pG....         nvlddmkm+0x335b26:     call    nvlddmkm+0x333d78
+		       	   objvbios.c:335 конец for копирования objvbios.c:331 for(i=0;	nvlddmkm+0x333efb:        jmp     nvlddmkm+0x333f15 // результат чтения биоса в памяти по регистру [r15]
+			   objvbios.c:365 status = validateVbiosImage(pGpu,...)		nvlddmkm+0x333f42:    call    nvlddmkm+0x334be0
+			       objvbios.c:1242    NV_STATUS validateVbiosImage----        nvlddmkm+0x334be0
+			     w1objvbios.c:1306 while ((status == NV_OK) && !bDone)
+			       objvbios.c:1308 if (testsToPerform & VVI_TTP_ONEROMONLY=4) 		nvlddmkm+0x334cc8:    mov     ecx,4
+			       objvbios.c:1368 if (.. OFFSETOF_PCI_DATA_STRUCT_CODE_TYPE==0x3)  	nvlddmkm+0x334d88:    cmp     byte ptr [rax+rbx],3  // EFI image - и поэтому далее не считаем CRC
+ 	                       objvbios.c:1484:VerifyChecksum(..):1011  checksum += pDest 		nvlddmkm+0x334fbe:    add     cl,byte ptr [rax]   //Сложение контрольной суммы
+			       objvbios.c:1484:VerifyChecksum(..):1014   if (checksum) 			nvlddmkm+0x334fc9:    neg cl проверка суммы на 0
+			     w1objvbios.c:1529--- проверка условия цикла if (!bDone),то опять цикл	nvlddmkm+0x335070:  test    esi,esi  ;  nvlddmkm+0x335072: je      nvlddmkm+0x334cc8 	
+			   objvbios.c:375  GPU_PCI_CFG_FLD_WR_DRF_NUM			nvlddmkm+0x333f76: call    qword ptr [rdi+3D8h] = call nvlddmkm+0x240fe8
+                       objvbios.c:2129  pVbios->vbi..= NV2080_CTRL_BIOS_SRC_ROM=7	nvlddmkm+0x335b36:  mov     byte ptr [rbx+1A7Ch],7 
+		     W1objvbios.c:2133  Конец while (bAttemptAcpi || bAttemptRom)       nvlddmkm+0x335b43:  jmp     nvlddmkm+0x335991  //идем на начало while (bAttemptAcpi || bAttemptRom)
+		       ---далее идем на новый цикл (W2) while objvbios.c:2055  while(bAttemptAcpi || bAttemptRom)---
+             W2objvbios.c:2064  if (bFound && (VerifyInstanceImage  		nvlddmkm+0x335a2b:    call    nvlddmkm+0x334330
+                           objvbios.c:1109  VerifyInstanceImage(...) ------- 			nvlddmkm+0x334330
+  			   objvbios.c:1146 rmStatus = validateVbiosImage(pG...  		nvlddmkm+0x334391:    call    nvlddmkm+0x334be0        
+			   objvbios.c:1156 rmStatus = VerifyHeaders(pVbios);            	nvlddmkm+0x3343a1:    call    nvlddmkm+0x33426c  //ok	
+			   objvbios.c:1162 rmStatus = VerifyBITVersion				nvlddmkm+0x3343b7:    call    nvlddmkm+0x677bfc  //ok
+				core5cnm.c:43							--------nvlddmkm+0x677bfc
+				core5cnm.c:57	rmStatus = vbiosReadStructure(pVbios, 			nvlddmkm+0x677c3e:    call    qword ptr [rcx+1D8h]=nvlddmkm+0x3388fc;
+					 RMCFG_FEATURE_ENABLED_OR_BAIL(VBIOS_IMAGE);
+static			   objvbios.c:1170 VerifyDCB():1033 RMCFG_FEATURE_ENABLED_OR_BAIL(VB.); nvlddmkm+0x3343ca:    call    nvlddmkm+0x1f9258  //ok   nvlddmkm+0x1f9258 = RMCFG_FEATURE_ENABLED , а BAIL реализуется последующей проверкой test rax и je nvlddmkm+0x3343de
+			   objvbios.c:1170 VerifyDCB():1039 IS_VIRTUAL:RMCFG_FEATURE_ENABLED(.) nvlddmkm+0x3343d9:    call    nvlddmkm+0x1f9258  //ok
+												nvlddmkm+0x3343e8:    call    nvlddmkm+0x1f8ffc 	//ok
+			   objvbios.c:1170 VerifyDCB():1044 DCBHeaderPtr = vbiosRead16(..);	nvlddmkm+0x3343fe:    call    qword ptr [rbx+1B0h]  call nvlddmkm+0x3385bc //возвр rax = 48h ; 1050 rax = b7
+			   objvbios.c:1170 VerifyDCB():1045 DCBVersion   = vbiosRead8(...)	nvlddmkm+0x33440c:    call    qword ptr [rbx+1A8h]    call nvlddmkm+0x338620  //возвр rax = 41h ; 1050 тоже rax = 41h
+												nvlddmkm+0x334412:    cmp     al,40h  //на моде рез-т 41
+			   objvbios.c:1170 VerifyDCB():1052  return verifyDCBData_4x()				      call nvlddmkm+0x677b08
+				dcb4x.c:716 NV_STATUS verifyDCBData_4x()			---------nvlddmkm+0x677b08----
+						
+		      objvbios.c:2159  status = vbiosLocateExpansionRomImages(..)	nvlddmkm+0x335c0c:      call    nvlddmkm+0x337de4 //al=0=ok cl=55
+		      objvbios.c:2177  status = _vbiosRemoveImageIFR(pVbios); 		nvlddmkm+0x335c31:   call    nvlddmkm+0x4a4890
+		      objvbios.c:2189  pVbi. = NV2080_CTRL_BIOS_INFO_SECURITY_TYPE_UNSIGNED=1	nvlddmkm+0x335c5c: mov qword ptr [rbx+1C9Ch],1
+		      objvbios.c:2228 osWriteRegistryVolatile(..,NV_REG_OVERRIDE_VBIOS, nvlddmkm+0x335d10:    call    nvlddmkm+0x1e9e10 
+		      objvbios.c:2233 osWriteRegistryVolatile(..,NV_REG_VBIOS_SOURCE,   nvlddmkm+0x335d28:    call    nvlddmkm+0x1e9e10 
+	              objvbios.c:2241 if (vbiosApplyROMPacks(...			nvlddmkm+0x335d33:     call    nvlddmkm+0x67ad84       //рез-тат eax=ffff - типа Валится? или так и должно быть? на 1050 тоже rax=ffff
+	              objvbios.c:2243 {         VerifyInstanceImage 			nvlddmkm+0x335d4c:     call    nvlddmkm+0x334330
+		      objvbios.c:2243:1630 static NvU32 _vbiosCalcChecksum32		nvlddmkm+0x335d5a:  mov     r9,qword ptr [rbx+928h] // НАЧАЛО ВЛОЖЕННОГО ЦИКЛА_vbiosCalcChecksum32, где в [r9=ffffdf0166b91000]- дамп бивиса 
+											nvlddmkm+0x335d8c:        mov     rdx,rbx // КОНЕЦ ВЛОЖЕННОГО ЦИКЛА результат суммы в  [r8=c862b99-мод] [r8_1050=c852b99] ?rcx=d9cfe2e6 = pVbios->ImageID
+		      objvbios.c:2253  vbiosGetExpansionRomOffset() 			nvlddmkm+0x335d91:    call    nvlddmkm+0x3362f8   //возвр рез-тат [rax]=10800h
+		!!!выходим из vbiosExtractImage_IMPL результат ОК
+		osinit.c:705 
+ 		osinit.c:709  ТО, что ПОЗЖЕ status = vbiosInit(..) 			nvlddmkm+0x1e2f21:  call    qword ptr [rsi+178h]  = call    nvlddmkm+0x337890  //ok
+			objvbios.c:2666:NV_STATUS vbiosInit_IMPL(...)-------            			nvlddmkm+0x337890----------------- Разбор 11.11.2022-->
+			objvbios.c:2733:  if ((!pVbios->BITAddress) &&... 					nvlddmkm+0x337936:       test    r8d,r8d  // [r8]=0  => условие не выполняется переход на   jne  nvlddmkm+0x33796d
+			objvbios.c:2743:  rmStatus = initBITData( 						nvlddmkm+0x337973:	 call    nvlddmkm+0x677d94 //возвр рез-тат [rax]=2
+			objvbios.c:2760	  if (!initRegistryRomOverride(pGpu, pVbios))  				nvlddmkm+0x3379be:       call    nvlddmkm+0x3347ec //возвр рез-тат [rax]=0 //выходим на break
+			objvbios.c:2770   if (pVbios->buildVersion >= 1647110 					nvlddmkm+0x3379d2: cmp dword ptr [rdi+0A34h],192206h  //рез-тат true - по jb не переходим и идем во внутрь условия
+			objvbios.c:2788   if (..PDB_PROP_GPU_REVLOCK_SUPPORTED)) 				nvlddmkm+0x3379f9:  cmp     byte ptr [rsi+9EEh],r12b  //условие не выполняется -> большой переход на   je      nvlddmkm+0x337b41 
+			objvbios.c:2837   if (IsGK104(pGpu)							nvlddmkm+0x337b44:  call    nvlddmkm+0x27c018		//условие не выполняется -> переход на   je      nvlddmkm+0x337b66
+			objvbios.c:2837   if (osReadRegistryDword(..NV_REG_STR_RM_EXECUTE_DEVINIT_ON_PMU.. 	nvlddmkm+0x337b7e: call    nvlddmkm+0x22638c	//рез-тат ffff ,условие не выполняется -> переход на   jne     nvlddmkm+0x337bad
+			objvbios.c:2865   if (osReadRegistryDword(..NV_REG_STR_RM_DISABLE_FWSECLIC.. 		nvlddmkm+0x337bbe: call    nvlddmkm+0x22638c	//рез-тат ffff ,условие не выполняется -> переход на   jne     nvlddmkm+0x337bd0 
+			objvbios.c:2872   if (osReadRegistryDword(..NV_REG_STR_RM_EXECUTE_FWSEC_ON_SEC2.&&.	nvlddmkm+0x337be1: call    nvlddmkm+0x22638c	//рез-тат ffff ,условие не выполняется -> переход на   jne     nvlddmkm+0x337bf0 
+														nvlddmkm+0x337bf0:          test    r15,r15 	// переход на   je      nvlddmkm+0x337c0f 
+			objvbios.c:2889   if (osReadRegistryDword(..NV_REG_STR_RM_DEVINIT_BY_SECURE_BOOT..)     nvlddmkm+0x337c20:      call    nvlddmkm+0x22638c //рез-тат ffff , далее переход   je      nvlddmkm+0x337c35  не выполняется
+			objvbios.c:2891	 if (..pVbios->getProperty(pVbios, PDB_PROP_VBIOS_LS_UDE_PRESENT))) 	nvlddmkm+0x337c2c: cmp     byte ptr [rdi+921h],0  //условие = 0 ->переход на 	je      nvlddmkm+0x337c84
+			objvbios.c:2920  if (..(pVbios, PDB_PROP_VBIOS_USE_HULK_INSTEAD_OF_PSDL))		nvlddmkm+0x337c84: cmp     byte ptr [rdi+917h],0 // [rdi+917h]=1; условие true -> НЕТ перехода по  je      nvlddmkm+0x337c98 
+			objvbios.c:2922  _vbiosReadHulkInfo(pGpu, pVbios);  					nvlddmkm+0x337c93: call    nvlddmkm+0x33444c  //возвр рез-тат [rax]=0
+			objvbios.c:2931  if (!pVbios->bPrimaryVDEPresent		 			nvlddmkm+0x337c98: cmp     byte ptr [rdi+1F90h],0 //[rdi+1F90h]=1; условие false -> переход по  jne     nvlddmkm+0x337ce0
+           		objvbios.c:2952  fbBug1989210MemScriptCheck_HAL(...)					nvlddmkm+0x337d0e:  call    qword ptr [r13+0E50h]= call nvlddmkm+0x24a50 //ничего не делает) ret 0
+           		objvbios.c:2952 if (..(pVbios,	PDB_PROP_VBIOS_EXECUTE_DEVINIT_ON_PMU			nvlddmkm+0x337d15:  cmp     byte ptr [rdi+910h],0 //[rdi+910h]=1; условие true -> НЕТ перехода по je  nvlddmkm+0x337d29 
+           		objvbios.c:2962  (void) DevinitPmuPrepareSysmemBuffers(pGpu, pVbios);  			nvlddmkm+0x337d24:      call    nvlddmkm+0x33af48 //возвр рез-тат [rax]=0
+           		objvbios.c:2965  if (pVbios->vbiosFlcnUcodeDesc[VBIOS_FLCN_UCODE_PREOSAPPS].bFalconU..)	nvlddmkm+0x337d29: cmp     byte ptr [rdi+1CE8h],0 //[rdi+1CE8h]=1; условие true -> НЕТ перехода по je   nvlddmkm+0x337d5e
+           		objvbios.c:2968  if (osReadRegistryDword(..NV_REG_STR_RM_DISABLE_PREOSAPPS		nvlddmkm+0x337d47: call    nvlddmkm+0x22638c  //возвр рез-тат [rax]=ffff //условие true -> НЕТ перехода по  je  nvlddmkm+0x337d5e
+           		objvbios.c:2973  (void) vbiosPrepareBuffersForFalconUcode( 				nvlddmkm+0x337d59: call    nvlddmkm+0x670388  //возвр рез-тат [rax]=0
+           		objvbios.c:2978 vbiosDumpCallbackRegister(pGpu, pVbios);				nvlddmkm+0x337d64: call    qword ptr [rdi+638h]= call  nvlddmkm+0x5bbc04 // [rax]=0
+           		objvbios.c:2988 rmStatus = gpuMutexMgrConstruct(pGpu); 					nvlddmkm+0x337d72: call    nvlddmkm+0x2d9430  //возвр рез-тат [rax]=0
+           		objvbios.c:2995  vbiosProcessSecurity_HAL(pGpu, pVbios);  !!!!!!!!!!!!!!!!!!!!		nvlddmkm+0x337d80: call    qword ptr [rdi+808h] = call nvlddmkm+0x4a725c //возвр рез-тат [rax]=0 ;[rcx]=efae867bac5e0000
+				vbiossecuritygm200.c:74 NV_STATUS vbiosProcessSecurity_GM200				--------nvlddmkm+0x4a725c---
+				vbiossecuritygm200.c:99 pVbios->status = NV2080_CTRL_BIOS_INFO_STATUS_UNSET=34h; 		nvlddmkm+0x4a728a:	mov dword ptr [rdx+1A78h],34h  //по этому адресу был 0 - > стало 0х34h
+				vbiossecuritygm200.c:101 rmStatus = getVbiosSecurityBlock(..) 					nvlddmkm+0x4a72bd:	call    nvlddmkm+0x6a3810   //возвр rax=0
+				vbiossecuritygm200.c:124 rmStatus = _vbiosExtractCertificateFromImage(..)			nvlddmkm+0x4a7308:	call    nvlddmkm+0x4a5f18   	//возвр rax=0  ; *[rbp-21]=  c0 69 e5 88 84 6a e8 96 f8 15 b0 12 30 02 ee e1 - сертификат (ключ) из биоса
+				vbiossecuritygm200.c:130 if (NULL == vbiosCertificateList.pVendorPublicKey)			nvlddmkm+0x4a7327:      mov     rbx,qword ptr [rbp-21h]; //возвр rbx=ffffda8f16de5068 - адрес где лежит серт,								сам серт  = c0 69 e5 88 84 6a e8 96 f8 15 b0 12 30 02 ee e1
+				vbiossecuritygm200.c:146 rmStatus = _vbiosGenerateImageHashesFromHAT(...)			nvlddmkm+0x4a737d:	call    nvlddmkm+0x4a64a0; //возвр rax=0 //2 раза лезет записывать GPU_REG_RD32() nvlddmkm+0x1e7848 c флагом e208  // возвр rcx=ffff888ce1c02100;  *rcx   = 00 00 f0 ff ff ff ff ff 0c 00 02 07 04 01 00 00;
+ХАКа Нида!			vbiossecuritygm200.c:157 rmStatus = _vbiosExtractSignatureFromImageAndVerify(..)  		nvlddmkm+0x4a73ad:      call    nvlddmkm+0x4a60b8 //возвр rax 25=NV2080_CTRL_BIOS_INFO_STATUS_INVALID_PCI_DATA_SIG //после вызова надо ХАК!!!!
+ХАКа Нида!				vbiossecuritygm200.c:793   rmStatus = _vbiosVerifyImageSignature(..)			nvlddmkm+0x4a61cb:	 call    nvlddmkm+0x4a6cbc 	
+						vbiossecuritygm200.c:868 vbiosRSADecrypt(pSignature, len * 8, *pRsaPublicKey,..)		nvlddmkm+0x4a6d28:   call    nvlddmkm+0x6a5030 //результат распаковки *[rcx+30] = 6e 58 8d c4 ab 23 2a cd 7b 9e 80 e5 d2 09 bd bc 
+							pDecrypt=[rcx]=6e 58 8d c4 ab 23 2a cd 7b 9e 80 e5 d2 09 bd bc   - хэш расшифрованный из подписи в оригинальном биосе с помощью открытого ключа
+							pHash  = [rdx]=92 3f de 5a 3d 78 ac 2c 8e 4c f6 6e ec ef 76 8d   - хэш вычисленный из текущего биоса (этот конкретно ..92 3f.. - не правильный из модифицированного биоса)
+						vbiossecuritygm200.c:872 if(osMemCmp(pDecrypt, pHash, NV_HASH_SIGNATURE_SIZE_BYTE) != 0) nvlddmkm+0x4a6d6a:	call    nvlddmkm+0x1d8298 	//если хэши равны возвр 0	
+							!!!  после сранения надо проверить , что по адресу [rsp+38] лежит правильный ключ ...6e 58..  !!!
+Еще раз					vbiossecuritygm200.c:820 preservSignatureStatus = _vbiosVerifyImageSignature(...) 	nvlddmkm+0x4a6206:     call    nvlddmkm+0x4a6cb
+							pDecrypt=[rcx]=d7 24 e9 84 c1 a5 f0 c8 a4 f8 49 3d f4 bf ef 74   - хэш расшифрованный из подписи в оригинальном биосе с помощью открытого ключа
+							pHash  = [rdx]=d7 24 e9 84 c1 a5 f0 c8 a4 f8 49 3d f4 bf ef 74  - запасной хэш вычисленный из текущего биоса ( странно но он правильный)
+						vbiossecuritygm200.c:872 if(osMemCmp(pDecrypt, pHash, NV_HASH_SIGNATURE_SIZE_BYTE) != 0) nvlddmkm+0x4a6d6a:	call    nvlddmkm+0x1d8298 	//если хэши равны возвр 0
+							!!!  после сранения надо проверить , что по адресу [rsp+38] лежит правильный ключ ...6e 58..  !!!
+
+				vbiossecuritygm200.c:174 rmStatus = _vbiosCheckCertificatesValidity(..)				nvlddmkm+0x4a73ec:	call    nvlddmkm+0x4a5cb8 //возвр 0
+           		objvbios.c:2998  vbiosReadVrdsInfo_HAL(pGpu, pVbios); 					nvlddmkm+0x337d8c: call    qword ptr [rdi+878h] = call nvlddmkm+0x24a50 //ничего не делает) ret 0
+		osinit.c:736 if (status != NV_OK) - выход из vbiosInit			nvlddmkm+0x1e2f27:  mov     edi,eax; test    edi,edi;  //условие false  , НЕТ перехода по  jne     nvlddmkm+0x1e2fab
+											nvlddmkm+0x1e2f38:    call    qword ptr [rbp+2D8h] = call   nvlddmkm+0x645f88  //ff  ; на 1050 тоже rax=ffff
+											nvlddmkm+0x1e2f4c:   call    qword ptr [rbp+420h] = call nvlddmkm+0x40a6a0 //ok
+											nvlddmkm+0x1e2f58: call    qword ptr [r14+298h] = call nvlddmkm+0x5e9bc0  //ok
+											nvlddmkm+0x1e2f6a:  call    qword ptr [rsi+180h]= call nvlddmkm+0x335e24  //ff  ; на 1050 тоже rax=ffff
+											nvlddmkm+0x1e2f83:      call    nvlddmkm+0x2052b0 //ok
+		osinit.c:770	dispInitLegacydispComponents_HAL?		        nvlddmkm+0x1e2f90:    call    qword ptr [rax+1728h] = call nvlddmkm+0x3463ec 
+                !!!выходим из osinit.c:1975  RmInitNvHal()                          nvlddmkm+0x1e3c8c:-------nvlddmkm+0x1e2ea0--- //рез-тат ok
+		Точка 5 сразу после выхода				            nvlddmkm+0x1e3c91:	mov     r14d,eax
+           osinit.c:2044 if (NV_OK != bifReadGpuConfigReg_HAL(..	            nvlddmkm+0x1e3d39: call    nvlddmkm+0x24062c  //ok
+     nvlInit.c:1026 Выход из if (!rmSetupNvAdapter()) {		              точка nvlddmkm+0x129f2b:  test    al,al //al=1
+     nvlInit.c:1049 if (..!rmNvDeviceHasRunDevinit())..)			    nvlddmkm+0x129f6a:    call    nvlddmkm+0x1526e4  //мод.возвр.0  1050 //1050 возр 1
+	nvlRm.cpp:137 	BOOLtobool(::rmNvDeviceHasRunDevinit(...)   			nvlddmkm+0x1526ee: call    nvlddmkm+0x1525e8
+            nvlRm.cpp:3365   bResult = RmNvDeviceHasRunDevinit(...) 		     	  nvlddmkm+0x152662:   call    nvlddmkm+0x1e2fd0
+		osinit.c:809 threadStateInit(&th..) 						nvlddmkm+0x1e3019:      call    nvlddmkm+0x213c20 
+		osinit.c:809 osAcquireRmSema(...) 						nvlddmkm+0x1e3025:      call    nvlddmkm+0x2434f0 
+		osinit.c:813 rmApiLockAcquire(...) 						nvlddmkm+0x1e3030:      call    nvlddmkm+0x20f758 
+		osinit.c:815 rmGpuLocksAcquire(...) 						nvlddmkm+0x1e303b:      call    nvlddmkm+0x21ca08   
+		osinit.c:817  bIsPosted = GPU_IS_DEVICE_INIT_COMPLETED(pGpu);			nvlddmkm+0x1e304a:	call    qword ptr [rdi+7E0h] = nvlddmkm+0x27f414
+			GPU_REG_RD32()		nvlddmkm+0x27f44e:    call    qword ptr [rcx+368h]= nvlddmkm+0x20aa1c  //не мод возвр 2	 и далее на выход  
+						 nvlddmkm+0x20aa26:   call    qword ptr [rcx+370h]= nvlddmkm+0x20a7d8 
+ 						   nvlddmkm+0x20a7f7: call    qword ptr [rcx+3D8h] = nvlddmkm+0x207e00	//ok	
+	  					    nvlddmkm+0x207e5f: call    nvlddmkm+0x207794  //ret rax=a0 	//ok
+						   nvlddmkm+0x20a817: call    qword ptr [rbp+378h] = nvlddmkm+0x20a834
+						    nvlddmkm+0x20a8b0: call    rax=nvlddmkm+0x27f5a4 	//ok  //gpuSanityCheckRegisterAccess_HAL()
+							    nvlddmkm+0x20a8e0: call    nvlddmkm+0x2087d8	//ok
+			osdl.c:605  osDevReadReg032()	    nvlddmkm+0x20a901: call    qword ptr [r14+190h]=nvlddmkm+0x1e7848  //мод возвр=0 //1050 возвр=2  по адресу ffff91f9`8002240c [rax+rcx*4]  rax = ffff91f980000000 rcx=8903*4=2240C   [r8]=ffff91f980000000 
+
+		osinit.c:819 rmGpuLocksRelease(...) 						nvlddmkm+0x1e3059:      call    nvlddmkm+0x21cad4   
+		osinit.c:821 rmApiLockRelease(...) 						nvlddmkm+0x1e305e:      call    nvlddmkm+0x20f864
+		osinit.c:823 osReleaseRmSema(...) 						nvlddmkm+0x1e306c:      call    nvlddmkm+0x2434f0
+		osinit.c:826 threadStateFree(&th..) 						nvlddmkm+0x1e3078:      call    nvlddmkm+0x2137f8
+
+     nvlInit.c:1052 if (!rmPostNvDevice())				    nvlddmkm+0x129fa3:     call    nvlddmkm+0x152bc0 // МОД Валится рез-тат = 0
+	nvlRm.cpp:154 	BOOLtobool(::rmPostNvDevice(...)   nvlddmkm+0x152bca: call    nvlddmkm+0x152a38
+	   nvlRm.cpp:3393  rmPostNvDevice()		      		nvlddmkm+0x152ab7:   call    nvlddmkm+0x1e30a4
+		osinit.c:2066	RmPostNvDevice				nvlddmkm+0x1e30a4
+		osinit.c:2114 	threadStateInit(&th..) 			nvlddmkm+0x1e3140:      call    nvlddmkm+0x213c20  //рез-тат rax=87	        
+		osinit.c:2116	osAcquireRmSema() 						call    nvlddmkm+0x2434f0  //ok
+		osinit.c:2119 	rmApiLockAcquire()						call    nvlddmkm+0x20f758  //ok
+		osinit.c:2122	rmGpuLocksAcquire 						call    nvlddmkm+0x21ca08   //ok
+		osinit.c:2126 	osGetCurrentTick			nvlddmkm+0x1e3182	call    nvlddmkm+0x1fb658  //ok
+		osinit.c:2127   DevinitInitializeDevice()               nvlddmkm+0x1e318f:      call    nvlddmkm+0x2373c4   // МОД Валится рез-тат rax = ff
+		Входим внутрь  nvlddmkm+0x2373c4:------------------------------------------------------------------------------>>
+									 	nvlddmkm+0x237472:   call    qword ptr [rsi+8D0h]  call nvlddmkm+0x356fe4 //рез-тат rax=1 =>  nvlddmkm+0x356fec: cmp   byte ptr [rcx+0A2Eh],bl     // {[rcx+0A2Eh=0] ; bl=0} => // nvlddmkm+0x357001:  mov     ebx,1
+										nvlddmkm+0x23747a:   jne     nvlddmkm+0x237483  {[br=1]} //переход по условию rax=al=1
+										nvlddmkm+0x237483:   cmp     byte ptr [rbx+0A03h],dil   // {[rbx+0A03h]=0;dil=0} // далее по условию  jne  nvlddmkm+0x23749 мы не переходим
+										nvlddmkm+0x23748c:   cmp     byte ptr [rbx+0A06h],dil	// {[rbx+0A06h]=0;dil=0} // далее по условию  je   nvlddmkm+0x2374b7 мы переходим
+										nvlddmkm+0x2374bd:   cmp     byte ptr [rbx+0A00h],dil   // {[rbx+0A00h]=0;dil=0} // далее по условию  jne  nvlddmkm+0x2374d4 мы не переходим
+		 								nvlddmkm+0x2374c6:   cmp     byte ptr [rbx+0A01h],dil   // {[rbx+0A01h]=0;dil=0} // далее по условию  jne  nvlddmkm+0x2375a9 мы не переходим
+										nvlddmkm+0x2374d6:   neg     eax      // eax=01->eax=ff //проверить
+		   devinit.c:893   NV_PRINTF( "Devinit initializing device.."   nvlddmkm+0x2374eb  call    nvlddmkm+0x1f7bf0 
+		   devinit.c:897   clkResetCache_HAL(pGpu, pClk);		nvlddmkm+0x2374f6: call    qword ptr [r14+718h] = call  nvlddmkm+0x3a74cc  //возвр 0
+		   devinit.c:900   gpuPrivSecClearViolations_HAL                nvlddmkm+0x237500: call    qword ptr [rbx+830h] = call nvlddmkm+0x446bf4   //возвр. [rax] = 1
+	 	   devinit.c:905  if(..PDB_PROP_GPU_GC6_ROM_SEQUENCE_ENABLED..)	nvlddmkm+0x23750a:  cmp     byte ptr [rbx+0A8Ah],dil   // {[rbx+0A08h]=0;dil=0} // Условие не срабатывает и мы ДЛИННО  переходим на ELSE=> je  nvlddmkm+0x2374d4 
+	 	   devinit.c:933  else  					nvlddmkm+0x2375a9:  mov     r14d,2// Записываем "2"-ку - флаг DEVINIT_COMPLETED, для последующей проверки в функции GPU_SET_DEVINIT_COMPLETED(g, d)=>gpuWriteScratch_GK104() на условии gpugf100:2046 switch (scratch){ 2 =>  GPU_REG_WR32() nvlddmkm+0x27fad4: call qword ptr [rbx+330h] = nvlddmkm+0x20d82c
+
+		   devinit.c:935  if(!.PDB_PROP_VBIOS_DEVINIT_BY_SECURE_BOOT..) nvlddmkm+0x2375af:  cmp     byte ptr [rsi+920h],dil  // {[rbx+0A08h]=0;dil=0} // Условие срабатывает, так как давайс не был проинициализирован секретной проверкой)
+00		   devinit.c:937  GPU_SET_DEVINIT_COMPLETED(pGpu, NV_FALSE);    nvlddmkm+0x2375c1:    call    qword ptr [rbx+7E8h]=nvlddmkm+0x27fa38  //МАКРОС предварительно выставляет FALSE по флагу GPU_SCRATCH_DEVINIT_COMPLETED=2 в функции gpuWriteScratch_HAL()=gpuWriteScratch_GK104(), так как давайс пока на проинициализирован
+		   devinit.c:940  if(!.PDB_PROP_GPU_DEVINIT_REGKEY_OVERRIDE_SUPPORTED_DEF)){ nvlddmkm+0x2375c7: cmp     byte ptr [rbx+0A9Dh],dil  // {[rbx+0A9Dh]=1;dil=0} // Условие срабатывает и по je nvlddmkm+0x2375d9 мы не переходим
+		   devinit.c:955  gpuInitDevinitOverridesFromRegistry(pGpu);}   nvlddmkm+0x2375d3:  call    qword ptr [rbx+120h] = call nvlddmkm+0x208ab8 //возвр 0
+		   devinit.c:959  if(!.PDB_PROP_DISPLAY_DISABLE))		nvlddmkm+0x2375d9:  cmp     byte ptr [rbx+0A00h],dil  // {[rbx+0A00h]=0;dil=0} // Условие не срабатывает и мы переходим  на je nvlddmkm+0x2375ef 
+		   devinit.c:975  gpuPrepareForDevinit(pGpu)			nvlddmkm+0x2375f2:   call    qword ptr [rbx+250h]= call nvlddmkm+0x20a4e8 //возвр 0
+		   devinit.c:998  if(..PDB_PROP_VBIOS_ALLOW_NO_IMAGE)           nvlddmkm+0x237623:    cmp     byte ptr [rsi+904h],al  // {[rsi+904h]=0;al=0}  // Условие не срабатывает и мы переходим  на   je nvlddmkm+0x237632
+		   devinit.c:1005 if(..PDB_PROP_VBIOS_BIP3_AVAILABLE)           nvlddmkm+0x237632:    cmp     byte ptr [rsi+8E9h],al   // {[rsi+8E9h]=1;al=0}   // Условие срабатывает и по  je nvlddmkm+0x23771e мы не переходим
+		   devinit.c:1007 if(.. PDB_PROP_VBIOS_EXECUTE_DEVINIT_ON_PMU)  nvlddmkm+0x23763e:    cmp     byte ptr [rsi+910h],al   // {[rsi+910h]=1;al=0}   // Условие срабатывает и по  je nvlddmkm+0x237672 мы не переходим
+		   devinit.c:1010 RM_ASSERT(!..PDB_PROP_VBIOS_DEVINIT_BY_SECURE_BOOT  nvlddmkm+0x237646:   cmp     byte ptr [rsi+920h],al  // {[rsi+920h]=0;al=0} // Условие асерта не срабатывает, перепрыгиваем асерт {call    nvlddmkm+0x1e05d0} и идем далее по коду
+00		   devinit.c:1012 DevinitPmuOffloadDevinitToPmu(pGpu, pVbios);  nvlddmkm+0x237659: call    nvlddmkm+0x33aafc //возвр FF ИДЕМ ВНУТРЬ
+			devinit_pmu.c:184 devinitUcPACode = memGetPhysAddr(..       nvlddmkm+0x33ab5f:      	call    nvlddmkm+0x29d1b0   //возвр [rax]=17bad2000
+			devinit_pmu.c:186 devinitUcPAData = memGetPhysAddr(.        nvlddmkm+0x33ab7e:      	call    nvlddmkm+0x29d1b0   //возвр [rax]=17bacc000
+			devinit_pmu.c:214 if(..pmuCheckIfrTriggeredBootCompletion_HAL(nvlddmkm+0x33abec:      	call    qword ptr [r14+898h] = call nvlddmkm+0x440294  //возвр [rax]=0
+00->02			devinit_pmu.c:219 if(..pmuExecuteGenericBootloader_HAL()    nvlddmkm+0x33ac34:  	call    qword ptr [r14+840h] = call nvlddmkm+0x43f07c //возвр [rax]=0
+			  pmugm107.c:102 pmuExecuteGenericBootloader_GM107
+			  pmugm107.c:156 pmuIfrStateCache_HAL(pGpu, pPmu);    			nvlddmkm+0x43f13b:  call    qword ptr [rdx+820h]=call nvlddmkm+0x43f614
+00			  pmugm107.c:200 pmuEnableHal_HAL(pGpu, pPmu, FALSE); 			nvlddmkm+0x43f1f6:  call    qword ptr [rdi+7D8h]=call nvlddmkm+0x43ec28
+00			  pmugm107.c:201 pmuEnableHal_HAL(pGpu, pPmu, TRUE);  			nvlddmkm+0x43f1f6:  call    qword ptr [rdi+7D8h]=call nvlddmkm+0x43ec28
+00			  pmugm107.c:204 mcSetHubEnable_HAL(pGpu, pMc, TRUE); 			nvlddmkm+0x43f214:  call    qword ptr [r15+540h]=call nvlddmkm+0x40aae4  //мод возвр al=сс
+00			  pmugm107.c:207 (void)pmuEnableIrq_HAL(..NV_FALSE);  			nvlddmkm+0x43f224:  call    qword ptr [rdi+7F8h]=call nvlddmkm+0x440404
+00			  pmugm107.c:207 bifSetupDmaWindow(pGpu, pBif),       			nvlddmkm+0x43f235:  call    qword ptr [rax+250h]=call nvlddmkm+0x572920
+00			  pmugm107.c:223 (void)pmuApertureSetupPhysical_HAL(  			nvlddmkm+0x43f279:  call    qword ptr [rdi+768h]=call nvlddmkm+0x43c3ac
+00			   						      			nvlddmkm+0x43f580:  call    qword ptr [rbp+330h]=call nvlddmkm+0x20d82c  //GPU_REG_WR32()
+00->02			  pmugm107.c:393 pmuStartCpu_HAL(pGpu, pPmu);  	      			nvlddmkm+0x43f58c:  call    qword ptr [rdi+868h]=call  nvlddmkm+0x43c830
+			    pmugm200.c:394  pmuStartCpu_GM200(){------					nvlddmkm+0x43c830-------	
+!!!//30000->здесь	    pmugm200.c:405  GPU_FLD_WR_DRF_DEF(pGpu, _PPWR, _FALCON_CPUCTL,		nvlddmkm+0x43c866:    call    qword ptr [rdi+330h] //GPU_REG_WR32(  
+										nvlddmkm+0x20d83e:    call    qword ptr [rcx+338h]=> шаг_2: call  [rbx+348h]=nvlddmkm+0x20da3c=>  шаг_3: call  [r15+170h]=nvlddmkm+0x1e7884 [rax = 12 ; r9=10a100; rcx=42840*4=10a100]
+			  pmugm107.c:405 status = pmuWaitForGenericBootloaderCompletion_HAL  	nvlddmkm+0x43f5b6:    call    qword ptr [rdi+838h] //ret rax=0
+02ХАКа НИДА 2        	devinit_pmu.c:228 if (!GPU_IS_DEVICE_INIT_COMPLETED(pGpu))  nvlddmkm+0x33ac69:  	call    qword ptr [rsi+7E0h] =  nvlddmkm+0x27f414 //возвр [rax]=0 ЧТО ПЛОХО - НЕ ПРОХОДИМ ПО УСЛОВИЮ , НО ХАК ПОКА
+		   devinit.c:1059 rmStatusSub = busPostDevinitInit_HAL(..)      nvlddmkm+0x23776b:  call    nvlddmkm+0x2a6014
+		   devinit.c:1065 if (pVga)					nvlddmkm+0x237778: cmp     qword ptr [rsp+0B0h],r13  // Условие не срабатывает и мы переходим  на    je  nvlddmkm+0x2377b1
+                   devinit.c 1091 bifReadGpuConfigReg_HAL                       nvlddmkm+0x2377ca: call    nvlddmkm+0x24062c  //возвр [rax]=0
+                   devinit.c 1096 GPU_PCI_CFG_FLD_WR_DRF_DEF(pGpu, pBif, data,  nvlddmkm+0x237803: call    qword ptr [r12+3D8h] nvlddmkm+0x240fe8 => call [rcx+330] = nvlddmkm+0x20d82c GPU_REG_WR32() => osDevWriteReg032 { шаг_1: call [rcx+338] = nvlddmkm+0x20d6ac => шаг_2: call  [rbx+348h]=nvlddmkm+0x20da3c=>  шаг_3: call  [r15+170h]=nvlddmkm+0x1e7884}
+02!		   devinit.c 1101 GPU_SET_DEVINIT_COMPLETED(pGpu, NV_TRUE);	nvlddmkm+0x237818: call    qword ptr [rbx+7E8h]=nvlddmkm+0x27fa38	//выставляет 2
+		   devinit.c 1103 NV_PRINTF(IS_SILICON(pGpu) ? LEVEL_INFO	nvlddmkm+0x237849:         call    nvlddmkm+0x1f7bf0 //возвр [rax]=0
+										nvlddmkm+0x2378a6:    je      nvlddmkm+0x2378d9 [br=1] 
+		osinit.c:2155:romcode.c:1023   static vbiosInitAfterSecondaryPost(pGpu,...)::vbiosSetupPreBITMobileFlag()  nvlddmkm+0x1e31ec:      call    qword ptr [rax+550h]=call nvlddmkm+0x67a730  //мод возвр al=c0
+		osinit.c:2155:romcode.c:1025   static vbiosInitAfterSecondaryPost(pGpu,...)::vbiosSetupDynamicDcbMask()    nvlddmkm+0x1e31f5:        call    nvlddmkm+0x237de4  //мод возвр al=0
+		С хаком вроде выходим из функции и доходим аж до сообщения S.e.s.s.i.o.n.\.R.m.R.C.P.r.e.v.D.r.i.v.e.r.V.e.r.s.i.o.n
+										
+11.11.22 Вывод пока такой: если на точке  nvlddmkm+0x1e7884 поставить в дебагере eax=2 , то по адресу [r8]+rax*4=[r8]+2240C запишется 02 и вроде как всё запустится
+если тоже самое проделать с рабочи биосом но записать 0, то этот Ноль там так и останется и не перепишется потом никак)
+
+     nvlInit.c:1062 if (!getArchitectureInfo()) 			nvlddmkm+0x129fb3:  call    nvlddmkm+0xea28c //мод возвр. al=1
+     nvlInit.c:1083 configureSurpriseRemovalSupport(); 			nvlddmkm+0x12a016:  call    nvlddmkm+0x16b788 // мод возвр. rax=1400		
+     nvlInit.c:1088 if (!rmInitNvDevice(isSLI())) 			nvlddmkm+0x12a024:   call    nvlddmkm+0x1518d4 
+	nvlRm.cpp:181	CNvLBaseAdapter::rmInitNvDevice(bool noLoad)------------nvlddmkm+0x1518d4-------------		
+	nvlRm.cpp:189	bResult = BOOLtobool(::rmInitNvDevice(			nvlddmkm+0x1518f6	 call    nvlddmkm+0x151714
+		nvlRm.cpp:3476	BOOL rmInitNvDevice				--------nvlddmkm+0x151714----
+		nvlRm.cpp:3489	bResult = RmInitNvDevice(deviceReference 		nvlddmkm+0x1517b4	call    nvlddmkm+0x1e4ca8
+			ospc.c:399 BOOL RmInitNvDevice					--------nvlddmkm+0x1e4ca8----
+			ospc.c:412 status = _rmInitNvDevice(					nvlddmkm+0x1e4d01	call    nvlddmkm+0x1e4d40
+				ospc.c:86   static BOOL _rmInitNvDevice(..){			--------nvlddmkm+0x1e4d40----
+				ospc.c:188 pOS->osNvifInitialize(pGpu);					nvlddmkm+0x1e4f84	call    qword ptr [rax+3B8h]=nvlddmkm+0x1e1a60
+					nvif.c:1550 NV_STATUS osNvifInitialize(POBJGPU pGpu)		--------nvlddmkm+0x1e1a60----
+					nvif.c:1572 rmStatus = NVIF_ReadFunctionTableInRegistry(pGpu);		nvlddmkm+0x1e1ad1 	call    nvlddmkm+0x1e11ac
+						nvif.c:1448 NVIF_ReadFunctionTableInRegistry(POBJGPU pGpu)	--------nvlddmkm+0x1e11ac----
+ 						nvif.c:1470  if (osReadRegistryBinary(..)				nvlddmkm+0x1e121b	call    nvlddmkm+0x1e9024
+							osdl.c:933 NV_STATUS osReadRegistryBinary			--------nvlddmkm+0x1e9024----
+							osdl.c:942 NV_STATUS _osReadRegistryBinary(pGpu,			nvlddmkm+0x1e903b	call    nvlddmkm+0x1e5914
+								osdl.c:852	static NV_STATUS _osReadRegistryBinary 		--------nvlddmkm+0x1e5914-----
+								osdl.c:902	vpStatus = nvDlGetRegistryParameters			nvlddmkm+0x1e59d1	call    nvlddmkm+0x122220  // R.m.N.V.I.F.F.u.n.c.t.i.o.n.s возвр 57
+					nvif.c:1576 rmStatus = osNvifMethod(pGpu,				nvlddmkm+0x1e1b13:      call    nvlddmkm+0x1e1c94	//мод возвр.0
+								osdl.c:902	vpStatus = nvDlGetRegistryParameters			nvlddmkm+0x1e59d1	call    nvlddmkm+0x122220  // N.V.I.F.0.0.0.0.0.0.0.1.0.0.0.0.0.0.0.0  возвр 57
+					nvif.c:1585 if ( (rmStatus == NV_OK) 							nvlddmkm+0x1e1b1b:   test    eax,eax //мод: [eax=0] нет перехода по   jne     nvlddmkm+0x1e1bea
+					nvif.c:1586   (OutStatus == NV2080_CTRL_NVIF_STATUS_SUCCESS) && 			nvlddmkm+0x1e1b23:    cmp     dword ptr [rbp+50h],r15d  //мод: [rbp+50h=00 00 00 с0,  r15=0] не выполн - >есть большой переход по   jne     nvlddmkm+0x1e1bea
+					nvif.c:1655   if (_NVIF_FunctionIsSupported(NV2080_CTRL_NVIF_FUNC_POWERMIZER_LIMIT))	nvlddmkm+0x1e1c6d:	call    nvlddmkm+0x1e1384 //возвр rax=0 в условие не заходит
+				        nvif.c:1660   return rmStatus;  							nvlddmkm+0x1e1c7d: mov     eax,r12d 		//мод возвр rax=0
+				ospc.c:189 NV_ACPI_WMI1_Initialize(pGpu); 			nvlddmkm+0x1e4f8d:	call    nvlddmkm+0x243f50 				//мод возвр rax=0
+				ospc.c:193 pCl->clInitMappingPciBusDevice(pGpu, pCl);		nvlddmkm+0x1e4f98:	call    qword ptr [r15+238h]= call nvlddmkm+0x2813ec 	//мод возвр rax=0
+				ospc.c:196 if (!RM_SUCCESS(status=gpumgrQuadroDetection(pGpu))) nvlddmkm+0x1e4fa2:      call    nvlddmkm+0x204514 				//мод возвр rax=0
+				ospc.c:205 if (!RM_SU(status = gpumgrGeForceSMBDetection(pGpu)))nvlddmkm+0x1e4fc4:      call    nvlddmkm+0x202670				//мод возвр rax=0
+				ospc.c:214 if (!RM_SUCCESS(status = gpumgrTeslaDetection(pGpu)))nvlddmkm+0x1e4fd7:      call    nvlddmkm+0x204f34				//мод возвр rax=0
+				ospc.c:223 if (!RM_SUCCESS(status = gpumgrVGXDetection(pGpu)))  nvlddmkm+0x1e4fea:	call    nvlddmkm+0x2051dc 				//мод возвр rax=0
+				ospc.c:232 if (!RM_SUCCESS(status = gpumgrGRIDDetection(pGpu)))	nvlddmkm+0x1e4ffd:	call    nvlddmkm+0x2024d8 				//мод возвр rax=0 //rdx=1c09
+				ospc.c:241 if (!status=gpumgrGRIDQualifiedSystemDetection(pGpu))nvlddmkm+0x1e5010:	call    nvlddmkm+0x2025c8 				//мод возвр rax=0 //rcx=1c09
+				ospc.c:250 if (!RM_SUCCESS(status = gpumgrTitanDetection(pGpu)))nvlddmkm+0x1e5023:	call    nvlddmkm+0x204fd8 				//мод возвр rax=0
+				ospc.c:259 if (!RM_SUCCESS(status = gpumgrStatePreInitGpu(pGpu) nvlddmkm+0x1e5046:	call    nvlddmkm+0x204e34  				//мод возвр rax=0
+					gpu_mgr.c:1972 gpumgrStatePreInitGpu(POBJGPU pGpu)	--------nvlddmkm+0x204e34-----
+					gpu_mgr.c:1980 FULL_GPU_SANITY_CHECK():gpuIsGpuFullPower_IMPL   nvlddmkm+0x204e56	call    qword ptr [rbx+148h]=call nvlddmkm+0x209a4c
+					gpu_mgr.c:1983 status = gpuStatePreInit(pGpu);			nvlddmkm+0x204e90:	call    qword ptr [rbx+0E0h]=call nvlddmkm+0x20c564
+					     objgpu.c:5322 NV_STATUS gpuStatePreInit_IMPL		--------nvlddmkm+0x20c564----
+					     objgpu.c:?	 				 			nvlddmkm+0x20c584:	call    qword ptr [rcx+520h]=call nvlddmkm+0x20813c
+					     objgpu.c:5337 gpuInitOptimusSettings()	 			nvlddmkm+0x20c590:	call    qword ptr [rbx+4a8h]=call nvlddmkm+0x534dac
+					     objgpu.c:5341 gpuInitGC6Capabilities()				nvlddmkm+0x20c5a2:      call    qword ptr [rbx+468h]=call nvlddmkm+0x53486c
+					     objgpu.c:5344 gpuPreInit_HAL()=gpuPreInit_GK104()			nvlddmkm+0x20c5ab:      call    nvlddmkm+0x27f39c
+					     objgpu.c:5351 rmStatus = gpuRemoveMissingEngines(pGpu)		nvlddmkm+0x20c5d9:	call    nvlddmkm+0x20acb8 
+					     objgpu.c:5354 engDescriptorList=gpuGetInitEngineDescriptors(pGpu)	nvlddmkm+0x20c5ec:	call    qword ptr [rsi+70h]=vlddmkm+0x27bf94
+					     objgpu.c:5355 numEngDescriptors=gpuGetNumEngDescriptors(pGpu)	nvlddmkm+0x20c5f5:	call    qword ptr [rsi+90h]=nvlddmkm+0xfcf1c
+					     objgpu.c:5357 rmGpuLockIsOwner()					nvlddmkm+0x20c5fe:	call    nvlddmkm+0x21c994 
+				  	 ++++for (curEngDescIdx = 0; curEngDescIdx < numEngDescriptors; curEngDescIdx++) ++++  rsi=0; inc rsi;
+					     objgpu.c:5363 pEngstate = gpuGetEngstate(pGpu, curEngDescriptor);	nvlddmkm+0x20c61a:    	call    qword ptr [rbx+508h]= nvlddmkm+0x207f3c
+					     objgpu.c:5366 if (pEngstate == NULL) CONTINUE!;	nvlddmkm+0x20c623: test    rax,rax; je      nvlddmkm+0x20c67d
+					     objgpu.c:5376 rmStatus = engstateStatePreInit(pGpu, pEngstate);	nvlddmkm+0x20c632:	call    qword ptr [r8+80h]= nvlddmkm+0x649104
+24.11.2022 ->engstateStatePreInit_IMPL		objengstate.c:70 engstateStatePreInit_IMPL(){	--------nvlddmkm+0x649104 
+						objengstate.c:97 return engstateStatePreInitLocked()	nvlddmkm+0x64918e	call qword ptr [rax+90h]:   
+			bif			 rsi=0: bifgk104_gf100.c:37 bifStatePreInitLocked_GK104()  	nvlddmkm+0x2d8f60:jmp qword ptr [rax+4??h]=nvlddmkm+0x2f00e8
+							  bifgk104_gf100.c:46    pBif->GpuIntfType = NV_BUS_TYPE_PCI_EXPRESS; 		nvlddmkm+0x2f00ed:	mov     dword ptr [rdx+720h],eax=8
+							  bifgk104_gf100.c:47    pBif->BusIntfType = NV_BUS_TYPE_PCI_EXPRESS; 		nvlddmkm+0x2f00f3:	mov     dword ptr [rdx+724h],eax=8
+						 rsi=1,2,4-8,a,b,d,10,14,16,18,20,21,22,24-29:			nvlddmkm+0x2434f0: xor eax,eax	return 0;
+						 rsi=e,f,17,1d,1e,1f 		CONTINUE!
+						 rsi=3: objpmgr.c:229 pmgrStatePreInitLocked_IMPL()		nvlddmkm+0x2d6654: jmp qword ptr [rax+498h]= nvlddmkm+0x6130f4
+						 rsi=9: fbgk104:107   fbStatePreInitLocked_GK104()		nvlddmkm+0x2d3060:jmp nvlddmkm+0x320410
+						 rsi=c: ?:?   	      ?lpwrStatePreInitLocked_IMPL()?		nvlddmkm+0x2d83d0:jmp nvlddmkm+0x2a8248
+						 rsi=11: ?:?   	      ?grStatePreInitLocked_IMPL()?		nvlddmkm+0x2d8680:jmp qword ptr [rax+290h]=nvlddmkm+0x5a0034
+						 rsi=12: objlsfm.c:   lsfmStatePreInitLocked_IMPL()		nvlddmkm+0x2d727c:jmp qword ptr [rax+1B0h]=nvlddmkm+0x638258
+						 rsi=13: ?:?          ?acrStatePreInitLocked_IMPL()		nvlddmkm+0x2d6fa8:jmp qword ptr [rax+228h]=nvlddmkm+0x5fb6b4
+						 rsi=15: ?:?                  					nvlddmkm+0x2d307c:jmp qword ptr [rax+380h]=nvlddmkm+0x5b96a8
+						 rsi=19,1a,1b,1c: ?:?                  				nvlddmkm+0x2d51f8:jmp   nvlddmkm+0x37e1fc
+						 rsi=23: inforom.c:894 inforomStatePreInitLocked_IMPL()		nvlddmkm+0x2d3808:jmp qword ptr [rax+2b8h]=nvlddmkm+0x5c1458
+							inforom.c:894 pFsAdapter=inforomConstructInforomFsAdapter()   nvlddmkm+0x5c147c:  call    nvlddmkm+0x6e2084
+								ifrfsadapter.c:68 inforomConstructInforomFsAdapter(){ ----nvlddmkm+0x6e2084----
+точки контроля								ifrfsadapter.c:88 status=inforomGetFsImageParams()	  nvlddmkm+0x6e20df: call  	nvlddmkm+0x6e1ab4
+чтения из биоса								ifrfsadapter.c:345 inforomGetFsImageParams(){	--------nvlddmkm+0x6e1ab4-------
+nvlddmkm+0x1e782c							ifrfsadapter.c:379 if (inforomGetFsBounds_HAL()		nvlddmkm+0x6e1b53:  call qword ptr [r15+4B0h]=
+nvlddmkm+0x1e7838							ifrfsadapter.c:383 status = pmgrRomAddrAdjustIFR_HAL	nvlddmkm+0x6e1b73:  call qword ptr [r12+590h]=
+nvlddmkm+0x1e7848							ifrfsadapter.c:399 pmuPreOsWaitForCompletion_HAL()	nvlddmkm+0x6e1ba2:  call qword ptr [rax+878h]=
+									ifrfsadapter.c:417 rdSrc.type=ROM_IMG_READ_SRC_GPU_PROM nvlddmkm+0x6e1bb9   dword ptr [rbp-30h],3
+									ifrfsadapter.c:459 (romImgRdByte(rdSrc, off + 0x0)=='I' nvlddmkm+0x6e1c72:  call nvlddmkm+0x3349f4
+									ifrfsadapter.c:460 (romImgRdByte(rdSrc, off + 0x1)=='S')
+									ifrfsadapter.c:461 (romImgRdByte(rdSrc, off + 0x1)=='B')
+									ifrfsadapter.c:462 (romImgRdByte(rdSrc, off + 0x1)=='N')
+									ifrfsadapter.c:463 (romImgRdByte(rdSrc, off + 0x1)=='R')
+									ifrfsadapter.c:464 (romImgRdByte(rdSrc, off + 0x1)=='I')
+									ifrfsadapter.c:504 pSpiDev=SPI_GET_SPI_DEVICE(pSpi, 0)	nvlddmkm+0x6e1d3d:  call qword ptr [rax+388h]=call nvlddmkm+0x2c48fc
+									ifrfsadapter.c:522 status = pmgrRomAddrAdjust_HAL(..)   nvlddmkm+0x6e1d75:  call qword ptr [r12+588h]=call nvlddmkm+0x48d0b4
+									ifrfsadapter.c:544 tmpStatus = bifReadGpuConfigReg_HAL  nvlddmkm+0x6e1de6:  call    nvlddmkm+0x24062c 
+				ospc.c:271 pDisp  = GPU_GET_DISP_IFF(pGpu);			nvlddmkm+0x1e50ad:      call    nvlddmkm+0x2052b0 				//мод возвр rax=0
+				ospc.c:308 if(!.!RM_SUCCESS(status = gpumgrStateInitGpu(pGpu)))	nvlddmkm+0x1e50e8:	call    nvlddmkm+0x204cd0 				//!!!мод возвр rax=ffff
+					gpu_mgr.c:2010 status = gpuStateInit(pGpu);			nvlddmkm+0x204ced	call    qword ptr [rdi+0E8h]=nvlddmkm+0x20b904
+					     objgpu.c:5424 NV_STATUS gpuStateInit_IMPL		--------nvlddmkm+0x20b904-----
+					     objgpu.c:5444   engDescriptorList = gpuGetInitEngineDescriptors(pGpu);			call    qword ptr [rax+70h]
+					     objgpu.c:5445   numEngDescriptors = gpuGetNumEngDescriptors(pGpu);				call    qword ptr [rbx+90h]
+					     objgpu.c:5455 ..rmGpuLockIsOwner() 				nvlddmkm+0x20b95c:      call    nvlddmkm+0x21c994
+					     objgpu.c:5458  gpuPrereqStateInit(pGpu);							call    qword ptr [rdi+5B0h]
+					     objgpu.c:5461 rmStatus = gpuPrivSecStateInit(pGpu);					call    qword ptr [rdi+408h]
+					++++for (curEngDescIdx = 0; curEngDescIdx < numEngDescriptors; curEngDescIdx++) ++++  rsi=0; inc rsi;
+					     objgpu.c:5479 pEngstate = gpuGetEngstate(pGpu,.)    nvlddmkm+0x20b9a6:  call    qword ptr [rdi+508h]=nvlddmkm+0x207f3c	//pEngstate  = rax
+				немод        objgpu.c:5493 rmStatus= engstateStateInit(..)	 nvlddmkm+0x20b9bb:  call    qword ptr [rax+0A0h] =nvlddmkm+0x649070 	//rsi=0->rax=0; rsi=1->{nvlddmkm+0x122220}->rax=?; rsi=2->rax=0; rsi=3->rax=0; rsi=4->rax=0,rcx=400;... rsi=9->{nvlddmkm+0x122220 R.m.B.l.a.c.k.L.i.s.t.A.d.d.r.e.s.s.e.s }- ; rsi=29;rax=0 Далее НОРМ
+						rsi=0:objbif.c:113 bifStateInitLocked_IMPL()------nvlddmkm+0x6fcfab:jmp qword ptr [rax+2e8h]=nvlddmkm+0x572ab4
+						      objbif.c:127 rmStatus = bifInit_HAL(pGpu, pBif);	nvlddmkm+0x572b14: call    qword ptr [rbx+378h]=nvlddmkm+0x2ef79c
+							bifgk104_gf100.c:78 if (osReadRegistryDword(.NV_REG_STR_RM_PCIE_LINK_SPEED..))	nvlddmkm+0x2ef808:call    nvlddmkm+0x22638c
+							bifgk104_gf100.c:85 if (osReadRegistryDword(.NV_REG_STR_RM_PCIE_LTR_OVERRIDE.))	nvlddmkm+0x2ef83d:call    nvlddmkm+0x22638c
+							bifgk104_gf100.c:93 if (IsGK107MaskRevA01(pGpu))	 			nvlddmkm+0x2ef859: call    nvlddmkm+0x27c06c
+					8C1C0		bifgk104_gf100.c:106 bifInitGen2LinkUpgradePropIfCapable_HAL()=._GK104() 	nvlddmkm+0x2ef894: call    nvlddmkm+0x2400ec //Считывает из БА_РЕГ+8C1C0h значение = 110036  //1050g2_cold=130036
+								bifgk104_gf117.c:1128 xpLctrl2 = GPU_REG_RD32(pGpu, NV_XP_PL_LCTRL_2(0));				nvlddmkm+0x2400f5: mov   r9d,8C1C0h ; nvlddmkm+0x240100: call    qword ptr [rcx+368h]  //на p90cold значение rax= 110036
+								bifgk104_gf117.c:1130 if (FLD_TEST_DRF_NUM(_XP,_PL_LCTRL_2,_UPCONFIGURE_CAPABLE, 1,xpLctrl2))   	nvlddmkm+0x240106: test  al,4 //тестим 110036 & 4 => 000100010000000000110110 & 100 = 100d =4h  таким образом у числа 110036 проверяется только последняя цифра, что она больше >= 4, в этом случаe zf=0 и заходим в условие
+								bifgk104_gf117.c:1132 pBif->setProperty(pBif, PDB_PROP_BIF_ASLM_GEN2_LINK_UPGRADE_ENABLE, NV_TRUE);	nvlddmkm+0x24010a: mov   byte ptr [rbx+6ECh],1  //на p90cold тоже выставляется, что gen2 возможен
+							bifgk104_gf100.c:119	bifReadLinkSpeed_HAL()=_GK104()  			nvlddmkm+0x2ef8e9: call    qword ptr [rbx+398h]=nvlddmkm+0x240640			//1050g2_cold=11010040
+					88088			bifgk104_gf117.c:1086 if(NV_OK!=GPU_BUS_CFG_RD32(NV_XVE_LINK_CONTROL_STATUS))	nvlddmkm+0x240673: call  qword ptr [rcx+370h]= nvlddmkm+0x20a7d8  //Считывает из БА_РЕГ+88088 значение = 10210043 (//1050g2_cold=11010040), на след.командах [shr eax,10;and eax,0F] из числа получается 1 и она вписывается по указателю  *pCurrentLinkSpeed=1
+					2			bifgk104_gf117.c:1091 *pCurrentLinkSpeed=GPU_DRF_VAL(.._LINK_SPEED, tempRegVal) nvlddmkm+0x24068a: mov   dword ptr [rdi],eax   //eax=1 (вычисляется из предыдущего значения)  
+					2			bifgk104_gf117.c:1093  tempRegVal = GPU_REG_RD32(pGpu, NV_XP_PL_LCTRL_2(0));	nvlddmkm+0x24068f: call  qword ptr [rsi+368h]=nvlddmkm+0x20aa1c  \\p90cold Считывает из БА_РЕГ+8С1С0 значение = 130036  (//1050g2_cold=130036)
+								bifgk104_gf117.c:1101  tempRegVal = GPU_DRF_VAL(_XP, _PL_LCTRL_2, _DATA_RATE_SUPPORTED_REMOTE, tempRegVal); //применение маски [shr eax,14 (130036->1); and eax,0F(1->1)]=1
+								bifgk104_gf117.c:1103 *pMaxLinkSpeedRemote = NV_XVE_LINK_CONTROL_STATUS_LINK_SPEED_8P0=3 - tempRegVal1 = 2; //значение на которое еще мжно поднять скорость
+							bifgk104_gf100.c:121   switch (currentLinkSpeed){				nvlddmkm+0x2ef8ef:   mov     r8d,dword ptr [rbp+38h]=1(вычисленное в предыдущей функции начальное значение скорости что для p90,что для 1050 это "1") идем пока на Gen1
+							bifgk104_gf100.c:141    case BIF_LINK_SPEED_GEN1:				nvlddmkm+0x2ef8f9:   je      nvlddmkm+0x2ef954 
+							bifgk104_gf100.c:143    pBif->InitialSpeed = BIF_LINK_SPEED_GEN1; 		nvlddmkm+0x2ef954:  mov dword ptr [rbx+738h],1
+							bifgk104_gf100.c:157 RMTRACE_USBC1(_BIF_INIT_LINK_SPEED,.., currentLinkSpeed);  nvlddmkm+0x2ef984:  call    nvlddmkm+0x21afac
+							bifgk104_gf100.c:159	if (maxLinkSpeedRemote < currentLinkSpeed) 		nvlddmkm+0x2ef98c:   cmp     dword ptr [rbp+48h],eax
+							bifgk104_gf100.c:176	if (NV_OK != GPU_BUS_CFG_RD32(NV_XVE_PRIV_XV_0 		nvlddmkm+0x2ef9b6:  call    nvlddmkm+0x24062c //Считывает из БА_РЕГ+88150 значение = e0000195   (//1050g2_cold=e0000195)
+							bifgk104_gf100.c:183    if (bifIsGpuFlrCapable_HAL(pGpu, pBif))			nvlddmkm+0x2ef9de:  call    qword ptr [rbx+550h]=nvlddmkm+0xf7fc //пустышка возвр.0
+							bifgk104_gf100.c:203    if (bifIsXUsbPresent_HAL(pGpu, pBif))			nvlddmkm+0x2ef9f5:  call    qword ptr [rbx+558h]=nvlddmkm+0xf7fc //пустышка возвр.0
+							bifgk104_gf100.c:209    if (bifIsPpcPresent_HAL(pGpu, pBif))			nvlddmkm+0x2efa3a:  call    qword ptr [rbx+560h]=nvlddmkm+0xf7fc //пустышка возвр.0
+						      objbif.c:138?142 bifEnableASPMOverrides(pGpu, pBif)? bifInitBiosData(pGpu, pBif);	nvlddmkm+0x572b3b: call    nvlddmkm+0x570f6c
+						      objbif.c:142 if ( (bifGetBusIntfType(pBif)					nvlddmkm+0x572b43: call    qword ptr [rbx+1B8h]=nvlddmkm+0x5710a8
+						      objbif.c:153 bifInitNumPciFuncs_HAL()=.._GK104()					nvlddmkm+0x572b64: call    qword ptr [rbx+598h]=nvlddmkm+0x2103c0
+							bifgk104_gt212.c:1437  bifInitNumPciFuncs_GK104()					--------nvlddmkm+0x2103c0-----
+							bifgk104_gt212.c:1450  status = bifServiceMultifunctionState_HAL()				nvlddmkm+0x2103db:  call    qword ptr [rdx+518h]=nvlddmkm+0x210fd8  // Check if we have Azalia enabled
+						      objbif.c:162  case NV_PCI_DEVID_DEVICE_P2055_SKU50: 				nvlddmkm+0x572b88: sub     eax,118Ah
+						      objbif.c:170  bifDisableL1InP0Bug1503216War_HAL(pGpu, pBif)			nvlddmkm+0x572ba8: call    qword ptr [rbx+648h]= nvlddmkm+0x2434f0
+						      objbif.c:173  if (PMU_FEATURE_IS_ENABLED(pPmu, PERF_CHANGE_SEQ_STEP_BIF))         nvlddmkm+0x572bdb: cmp     byte ptr [rbp+9C2h],0;  je      nvlddmkm+0x572d05 [br=1] //на p106 идет длинный переход в обход функций bifInitVbiosData() и bifInitVbiosOverrides()
+						      objbif.c:176  static void bifInitVbiosData  .... //обходит большой статический код 
+					     	         objbif.c:197  rmStatus = _bifPmuLoadPrereqRegister(pGpu, pBif); 			nvlddmkm+0x572d0b: call    nvlddmkm+0x570494 //заходит и почти сразу выходит так как флаг PMU_TASK_IS_ENABLED=0 { cmp     byte ptr [rax+91Fh]=0,bl }
+					              objbif.c:207  return NV_OK; 							nvlddmkm+0x572d4a: ret //Выход из bifStateInitLocked_IMPL
+						rsi=1,....29 не тут пока прописаны ; rsi=3,4, где я боролся с измененным биосом через следующий абзац
+//В ИНИТЕ ЧИТАЮТСЯ(ЗАПИСЫВАЮТСЯ) ТАКЖЕ СЛЕДУЮЩИЕ РЕГИСТРЫ СО ЗНАЧЕНИЯМИ:  
+\\ЧТЕНИЕ p90: 1373a0=a; 213f4=0 ; 88488=0; 0=136000a1; 137f20=130f9985; 137f24=3 ; 137f28=3; 21c1c=3e; 2164c=1; 21650=1bfe897; 2166c=1980f; 21668=16059; 137f2c=30000; 21d38=38; 101000=400080; 137320=0; 137300=20000103; 137120=3; 137160=30000; 137128=3; 137168=30000 ;13713c=3; 13717c=43000103; 137180=20000003; 137190=3; d97c=d9cc=da1c=da6c=dabc=db0c=db5c=0; 13718c=30000; 
+\\	      d640=5000; d604=0; d644=4000; d650=1000; d680=5000; d964=d9b4=da54=da04=daa4=daf4=db44=7d000fa; d630=2000; d638=7000; d644=4000 ; d79c=20d ;d610=205d; d640=5000; d798 =30c; d628=7000; d794=31c; 204a0=900; 20798=6e
+\\ЗАПИСЬ p90: d97c=1;d9cc=1;da1c=1;da6c=1;dabc=1;db0c=1;db5c=1;dc28=0;d014=d034=d054=d074=d094=d0b4=d0d4=d0f4=d114=d134=7; 9410=172ec53e; 9400= 7f17a98; d640=5000; d604=1 (5попыток) ; d644=4000; d650=1000; d680=5000;d964=0;d9b4=da04=da54=daa4=daf4=db44=dc08=dc88=0; d630=2000; d638=7000; d644=4000 ;d79c=20d; d610=205d ; d640=5000; d798 =30c; d628=7000; d680=5000; d794=31c;
+				ospc.c:326	grGetDeviceCaps(pGpu, pGr, pOsHwInfo->grCaps, NV_FALSE);		call    qword ptr [r12+1F0h]
+				ospc.c:329	osWriteRegistryDword(pGpu, strDevNodeRM, NV_REG_STR_RM_GPU_ID,  	call 	nvlddmkm+0x1e9ca8
+				ospc.c:345 if(!.!RM_SUCCESS(status = gpumgrStateLoadGpu(pGpu))) nvlddmkm+0x1e5141:	call    nvlddmkm+0x204d7c
+					gpu_mgr.c:2023 gpumgrStateLoadGpu(POBJGPU pGpu)	--------nvlddmkm+0x204d7c-----
+					gpu_mgr.c:2033 status = gpuStateLoad(pGpu, flags);	nvlddmkm+0x204db2:	call    qword ptr [rdi+0F0h]=nvlddmkm+0x20ba6c
+					     objgpu.c:5655 NV_STATUS gpuStateLoad_IMPL			--------nvlddmkm+0x20ba6c-----
+					     objgpu.c:5684 status = gpuGetFuseEccStatus_HAL			nvlddmkm+0x20bb36:  call    qword ptr [rdi+9A8h]= nvlddmkm+0x2434c4
+					     objgpu.c:5719 if (!API_GPU_ATTACHED_SANITY_CHECK(pGpu)) 		nvlddmkm+0x20bb6f:  cmp     byte ptr [r14+288h],r13b
+					     objgpu.c:5731 if ((IsGP10X(pGpu) &&  				nvlddmkm+0x20bb88:  call    nvlddmkm+0x27c4a0
+					     objgpu.c:5742 if (pVbios != NULL)					nvlddmkm+0x20bbd7:  test    rbx,rbx
+					     objgpu.c:5745 vbiosHandleHulk_HAL(pGpu, pVbios)=.._GM200();	nvlddmkm+0x20bbe2:  call    qword ptr [rbx+858h]=nvlddmkm+0x4a6ec4 //заходит и почти сразу выходит так,как не заявлен HULK://  No HULK reported, nothing to process
+					     objgpu.c:5758  if (!IS_GPU_GC6_STATE_EXITING(pGpu)) 		nvlddmkm+0x20bbe8:  cmp     dword ptr [rdi+2890h],4
+					     objgpu.c:5760 rmStatus = vbiosHandleConstrainedNvflashUcode_HAL	nvlddmkm+0x20bbf7:  call    qword ptr [rbx+8B0h]= nvlddmkm+0x2434f0 //Заглушка
+					     objgpu.c:5776 rmStatus = gpuInitSriov_HAL(pGpu);			nvlddmkm+0x20bc31:  call    qword ptr [rdi+918h]= nvlddmkm+0x2434f0 //Заглушка
+					     objgpu.c:5784 rmStatus = gpuCreateDefaultClientShare_HAL(pGpu);    nvlddmkm+0x20bc59:  call    qword ptr [rdi+9B8h]= nvlddmkm+0x2434f0 //Заглушка
+					     objgpu.c:5791 pGpu->chipInfoState.chipInfo.pGpuName = NULL;	nvlddmkm+0x20bc67:  and     qword ptr [rdi+2DD0h],r13
+					     objgpu.c:5792 pGpu->chipInfoState.pCustomChipInfo = NULL;		nvlddmkm+0x20bc71:  and     qword ptr [rdi+2DE0h],r13
+					     objgpu.c:5800 if (gpumgrGetBcEnabledStatus(pGpu))			nvlddmkm+0x20bc78:  call    nvlddmkm+0x202734
+					     objgpu.c:5813 ...!IS_GPU_GC6_STATE_EXITING(pGpu)..			nvlddmkm+0x20bc95:  cmp     dword ptr [rdi+2890h],4
+					     objgpu.c:5816 rmStatus = gpuCheckPCIIDMismatch(pGpu, pVbios);	nvlddmkm+0x20bcb1:  call    qword ptr [rdi+158h]=nvlddmkm+0x206248
+			PRELOAD		     objgpu.c:5831 rmStatus = gpuStatePreLoad(pGpu, flags);		nvlddmkm+0x20bcbd:  call    nvlddmkm+0x20c6d0
+					     objgpu.c:5841 engDescriptorList=gpuGetLoadEngineDescriptors(pGpu); nvlddmkm+0x20bcd0:  call    qword ptr [rdi+520h]=nvlddmkm+0x20813c
+					     objgpu.c:5842 numEngDescriptors=gpuGetNumEngDescriptors(pGpu);     nvlddmkm+0x20bcdc:  call    qword ptr [rax+78h]=nvlddmkm+0x27bf9c
+ 					++++for (curEngDescIdx = 0; curEngDescIdx < numEngDescriptors; curEngDescIdx++) ++++  rsi=0; inc rsi;
+					     objgpu.c:5850 curEngDescriptor = engDescriptorList[curEngDescIdx]; nvlddmkm+0x20bce5:  call    qword ptr [rbx+90h]=nvlddmkm+0xfcf1c
+					     objgpu.c:5851 pEngstate = gpuGetEngstate(pGpu, curEngDescriptor);  nvlddmkm+0x20bd16:  call    qword ptr [rdi+508h]=nvlddmkm+0x207f3c
+					     objgpu.c:5865 rmStatus=engstateStateLoad(pGpu, pEngstate, flags)   nvlddmkm+0x20bd70:   call    qword ptr [rax+0C0h]={rsi0=nvlddmkm+0x2d8f44;rsi1=}
+				     rsi=0:  					------nvlddmkm+0x2d8f44-----=>  nvlddmkm+0x2d8f4b:   jmp     qword ptr [rax+300h]=nvlddmkm+0x572d4c
+						objbif.c:211 NV_STATUS bifStateLoad_IMPL()			--------nvlddmkm+0x572d4c-----
+						objbif.c:223 if ((IS_GPU_GC6_STATE_EXITING(pGpu) ||..		 	nvlddmkm+0x572d92:  cmp     dword ptr [rdi+2890h],4 //на 1050 (на 106-90 не проверял пока) выполнение нижнего условия перескакиваем изза флага PDB_PROP_VBIOS_DEVINIT_BY_SECURE_BOOT=0
+						objbif.c:292 bifUpdateLtrRequirement_HAL(pGpu, pBif, NV_TRUE);	не затрагивается
+						objbif.c:294 bifControl_HAL(pGpu, pBif, BIF_CONTROL_INIT); 		nvlddmkm+0x572ebb:  call    nvlddmkm+0x23e74c 
+						objbif.c:296 bifClearXveErrors(.. BIF_CLEAR_XVE_AER_ALL_MASK..); 	nvlddmkm+0x572ed2:  call    qword ptr [rbx+1F8h]=nvlddmkm+0x570cc4
+						objbif.c:300 status = bifLoadHw_HAL(pGpu, pBif, flags);			nvlddmkm+0x572ee1:  call    qword ptr [rbx+380h]=nvlddmkm+0x2403ac
+							bifgk104_gf117.c:793 bifLoadHw_GK104()				--------nvlddmkm+0x2403ac--------
+							bifgk104_gf117.c:808 status = _bifLoadHw_GK104()			nvlddmkm+0x2403db:     call    nvlddmkm+0x23dc10
+								bifgk104_gf117.c:526      _bifLoadHw_GK104()			--------nvlddmkm+0x23dc10-------
+								bifgk104_gf117.c:543  if (bifEnableHigherProtocolsAndSpeeds_HAL(..))	nvlddmkm+0x23dc57:  call    qword ptr [rdx+3A0h]=nvlddmkm+0x45a414
+								        bifgp100.c:313 bifEnableHigherProtocolsAndSpeeds_GP100 	--------nvlddmkm+0x45a414------
+//шпаргалка: read  nvlddmkm+0x1e7848					bifgp100.c:322 regVal = GPU_REG_RD32(pGpu, NV_XP_PL_CYA_1(0));	nvlddmkm+0x45a42f:    call    qword ptr [rcx+368h] //  GPU_REG_RD32(..  8c300  )  //результат 40a00c0
+//шпаргалка: write nvlddmkm+0x1e7884					bifgp100.c:324 GPU_REG_WR32(pGpu, NV_XP_PL_CYA_1(0), regVal);	nvlddmkm+0x45a44a:    call    qword ptr [rdi+330h] //  GPU_REG_WR32(..  8c300  )
+									 bifgp100.c:327 bifEnableHigherProtocolsAndSpeeds_GK104(..) 	nvlddmkm+0x45a460:   jmp     nvlddmkm+0x23ef70
+								        bifgk104_gf117.c:63 bifEnableHigherProtocolsAndSpeeds_GK104 	--------nvlddmkm+0x23ef70------
+									bifgk104_gf117.c:81  BRANDING_TYPE brand = gpuDetectBranding(pGpu);	nvlddmkm+0x23efbf: call    qword ptr [rcx+228h]=nvlddmkm+0x207314
+									bifgk104_gf117.c:82  NvBool bWorkstationSku = NV_FALSE; 		nvlddmkm+0x23efcc: mov     byte ptr [rbp+50h],0
+									bifgk104_gf117.c:87 (gpuDetectComputeBranding()==COMPUTE.._TYPE_TESLA)  nvlddmkm+0x23efe8: call    qword ptr [rbx+230h]  //на 1050 возвр 0
+								*	 bifgk104_gf117.c:88   bWorkstationSku = NV_TRUE;					   mov     byte ptr [rbp+50h],r12b //на 1050 не Выполняется.									
+//Запрос 88610	ИЗМЕНЯТЬ МОЖНО в dbg! // Check if VBIOS supports Gen2?3 bifgk104_gf117.c:93   tempRegVal = GPU_REG_RD32(pGpu, DEVICE_BASE(NV_PCFG)=88000 + NV_XVE_VSEC_NVIDIA_SPECIFIC_FEATURES_HIERARCHY=610);  nvlddmkm+0x23f005: call    qword ptr [rbx+368h]  // на 1050 возвр rax 1001
+		00 00 -> 01 10					if{		bifgk104_gf117.c:115 if (!pBif->RegKeyPresentPcieLinkSpeed)  { 		nvlddmkm+0x23f021: cmp     byte ptr [r14+826h],0   //1050 true и идем в условие
+									bifgk104_gf117.c:117  vbiosPciDevId = vbiosGetPCIDevId(pVbios); 	nvlddmkm+0x23f038: call    qword ptr [rdi+198h]=nvlddmkm+0x336e68
+									bifgk104_gf117.c:118   if (IsGK107MaskRevA01(pGpu)			nvlddmkm+0x23f03f: call    nvlddmkm+0x27c06c
+									bifgk104_gf117.c:127 else if ((vbios..NV_PCI_DEVID_DEVICE_P2081_SKU500) nvlddmkm+0x23f05f: mov     eax,103Ah; cmp     r13w,ax
+									bifgk104_gf117.c:136 else if (IsGK208(pGpu)  				nvlddmkm+0x23f07a:    call    nvlddmkm+0x27c1c0   
+									bifgk104_gf117.c:144 else if (pCl->getProperty(pCl, PDB_PROP_CL_BUG_1340801_DISABLE_GEN3_ON_GIGABYTE_SNIPER_3)  nvlddmkm+0x23f099 cmp     byte ptr [r15+96h],dil //не true p90=35303400
+																		nvlddmkm+0x23f0be:    mov     dil,sil  //Код сам посдставил gen2Supported = NV_TRUE;
+						!p90&1050 checked!	bifgk104_gf117.c:153 else if (!bifIsGen3EnabledGridSKU()	{	nvlddmkm+0x23f0c1:  call    qword ptr [r14+268h]=nvlddmkm+0x5718cc  	//1050 true - заходим в условие  //1050 возвр 35303400  (строка" 405")   \\p90 возвр 35303400  (строка" 405") 
+										objbif.c:3155 NvBool bifIsGen3EnabledGridSKU_IMPL {				--------nvlddmkm+0x5718cc-----
+										objbif.c:3241  return vbiosMatchEntryList()=vbiosMatchEntryProjectChipAndVersion()	nvlddmkm+0x5718e3: jmp     qword ptr [rax+6F8h]=nvlddmkm+0x3384e0
+											objvbios:6755 vbiosMatchEntryProjectChipAndVersion_IMPL() 			--------nvlddmkm+0x3384e0-------	
+											objvbios:6767   ..NV_OK == vbiosGetSkuInfo()						nvlddmkm+0x338513: call    qword ptr [rdi+1A0h]=nvlddmkm+0x3372e4  //идет копирование пар-ов букв в стр-ры params->chipSKU[i] из pVbios->NVChipSKU[i];
+    											//для 1050: params->chipSKU[]={0000f007,33,30,00};params->chipSKUMod[]={30,00};params->project[]={47,32,31,30,00};params->projectSKU[]={00,30,30,30,31};params->CDP[]={0,0,0,0,0,0};params->projectSKUMod[]={0,0};params->businessCycle =1e    //для 1050 это 300.0.G210.0001	 \\p90 это 090.0.G410.0090.
+											//далее в цикле сравнивается полученная с карты строка 47 32 31 30 "G210",только значением (строка наоборот) 30313247 последовательно со значениями 35353032 (стока "2055")х5раз, 30303432(стока "2400") x 2раза, 31303432(стока "2401") x 2раза, 35303432(стока "2405") x 3раза, в итоге в rax подставляется 35303400(строка" 405") \\p90=35303400
+								if	bifgk104_gf117.c:159 if (bWorkstationSku)				nvlddmkm+0x23f0d3:  cmp     byte ptr [rbp+50h],al 			//1050 false
+								else	bifgk104_gf117.c:189-191 else{ if (!IsGK110orBetter(pGpu) && ..		nvlddmkm+0x23f11d:    call    nvlddmkm+0x27c140  			//1050 возвр 1, но в ниже условие не заходим //p90 также возвр 1
+									bifgk104_gf117.c:201 else if (IsGK110orBetter(pGpu) 	&&..		nvlddmkm+0x23f146:    call    nvlddmkm+0x27c140		//1050 возвр 1,но в ниже условие не заходим из-за второго аргумента PDB_PROP_CL_ON_PCIE_GEN3_PATSBURG=0    //p90 также 
+							}else{		далее длинный переход на код после else:
+			// Check Gen3 fuses				bifgk104_gf117.c:254 status=bifVerifyGen3SpeedFuseSettings_HAL(...); 	nvlddmkm+0x23f240:   call    nvlddmkm+0x240f6c		//-> в процессе функции вызывались ф-ции GPU_REG_RD32 c адресами:1373a0(//1050g2cold=a  //p90cold=a) и 21250(//1050g2cold=0  //p90cold=1)    
+										bifgk104_gf117.c:446  bifVerifyGen3SpeedFuseSettings_GK104()				--------nvlddmkm+0x240f6c------
+										bifgk104_gf117.c:457  status = bifVerifyGen3ProtocolFuseSettings_HAL()  			nvlddmkm+0x240f85: call    qword ptr [rdx+5D0h]=nvlddmkm+0x2434f0  //ЗАГЛУШКА
+										bifgk104_gf117.c:460  if (NV_OK == fuseGetStateByOption_HAL(HAL_FUSE_OPT_DISABLE_GEN3_SPEED     nvlddmkm+0x240f9e: call    qword ptr [rbx+240h]=nvlddmkm+0x4ccab8  //1050 true
+										bifgk104_gf117.c:462   if (NV_FUSE_OPT_DISABLE_GEN3_SPEED_DATA_NO == fuseVal) 			nvlddmkm+0x240fa8: cmp     dword ptr [rsp+30h],eax  //1050 true и выходим на конец функции
+		// Check if remote (root/bridge port) supports Gen3	bifgk104_gf117.c:261 tempRegVal=GPU_REG_RD32(pGpu, NV_XP_PL_LCTRL_2(0) = 8C1C0h); 		nvlddmkm+0x23f263: call    qword ptr [rbx+368h]  // на 1050g2cold возвр rax=130036 // на p90cold также возвр rax=130036
+									bifgk104_gf117.c:262 tempRegVal = GPU_DRF_VAL(...) 			 			nvlddmkm+0x23f269: shr     eax,14h; nvlddmkm+0x23f26c:     and     eax,0Fh  //после этих манипуляций остается единица rax=1
+		?!1050 gen3Supported = NV_FALSE!			bifgk104_gf117.c:274 gen3Supported = NV_FALSE; 				 			nvlddmkm+0x23f2ab: mov     byte ptr [rbp+48h],r15b=0  //на 1050 попадаем сюда типа шина платы не дает gen3  // на p90cold также
+									bifgk104_gf117.c:290 if (pBif->getProperty(pBif, PDB_PROP_BIF_DISABLE_GEN2_LINK_RETRAINING)) 	nvlddmkm+0x23f2af: cmp     byte ptr [r14+6F0h],r15b=0  ; je      nvlddmkm+0x23f2ca  [br=1]   // на p90cold также
+									bifgk104_gf117.c:297 bifApplyWarForBug1204979_HAL(pGpu, pBif, &gen3Supported);			nvlddmkm+0x23f2d4: call    qword ptr [r14+618h]= nvlddmkm+0x24a50  //ЗАГЛУШКА возвр 0
+ 						dil=															nvlddmkm+0x23f2a8  mov     dil,r15b  или nvlddmkm+0x23f2c7:  mov     dil,r15b
+						al=															nvlddmkm+0x23f2db:         mov     al,byte ptr [rbp+48h]  //признак gen3
+				^checked 1050 al = 0 как появляется^	bifgk104_gf117.c:299 pBif->setProperty(pBif, PDB_PROP_BIF_PCIE_GEN2_CAPABLE, gen2Supported); 	nvlddmkm+0x23f2e5:  mov     byte ptr [r14+6EDh],dil //1050 dil = 1	// на p90cold dil=0
+				^checked 1050 dil= 1 как появляется^	bifgk104_gf117.c:300 pBif->setProperty(pBif, PDB_PROP_BIF_PCIE_GEN3_CAPABLE, gen3Supported);	nvlddmkm+0x23f2de:  mov     byte ptr [r14+6EEh],al  //1050 al = 0	// на p90cold al=0  
+			Читаем 1373a0 и 2157c:				bifgk104_gf117.c:306 bifSetPCIEBootSpeed_HAL(..gen2Supported || gen3Supported);                 nvlddmkm+0x23f301: call    qword ptr [r14+5F8h]=nvlddmkm+0x45c924
+			NV_PTRIM_SYS_JTAGINTFC 			1373a0		bifgk104_gm107.c:57 void bifSetPCIEBootSpeed_GM107(){	--------nvlddmkm+0x45c924----- 
+Заменить результат с 1 на 0:ловим момент 1 NV_FUSE_OPT_PCIE_BOOT_GEN23_DISABLE=2157C!   bifgk104_gm107.c:69 status = fuseGetStateByOption_HAL(..)	nvlddmkm+0x45c94e:   call    qword ptr [rdi+240h]=nvlddmkm+0x4cc888 //1050 возр.0 -> в процессе функции вызывались ф-ции GPU_REG_RD32 c адресами:1373a0(//1050g2cold=a  //p90cold=a) и 2157c (//1050g2cold=0  //p90cold=1)  
+											fusegp102.c:33 NV_STATUS fuseGetStateByOption_GP102()	--------nvlddmkm+0x4cc888------ ----1050---nvlddmkm+0x4ccab8-----					
+											fusegp102.c:54 if ((fuseOption..				nvlddmkm+0x4cc8b4: mov     ebx,r8d  \\p90 fuseOption=ebx=ff00005b=-16777125
+											fusegp102.c:69 switch (fuseOption)				nvlddmkm+0x4cc8df: mov     eax,0FF000070h=-16777104; 
+											fusegp102.c:90 case HAL_FUSE_OPT_HDMI_ENABLE			nvlddmkm+0x4cc8f2: cmp     ebx,0FF00001Bh=-16777189  \\false
+											fusegp102.c:91 case HAL_FUSE_OPT_HDMI_DISABLE			nvlddmkm+0x4cc8fe: cmp     ebx,0FF00001Ch=-16777188  \\false
+											fusegp102.c:75 case HAL_FUSE_OPT_DISABLE_CE:			nvlddmkm+0x4cc90a: cmp     ebx,0FF00003Bh=-16777157  \\false
+											fusegp102.c:79 case HAL_FUSE_OPT_DP_SPEED_SELECT:		nvlddmkm+0x4cc912: cmp     ebx,0FF00005Dh=-16777123  \\false
+											fusegp102.c:92 case HAL_FUSE_OPT_NVENC_THROTTLE:		nvlddmkm+0x4cc91a: cmp     ebx,0FF000061h=-16777119  \\false
+											fusegp102.c:101 case HAL_FUSE_OPT_VP8_DISABLE:			nvlddmkm+0x4cc922: cmp     ebx,0FF000063h=-16777117  \\false
+											fusegp102.c:123 case HAL_FUSE_STATUS_OPT_FBIO:			nvlddmkm+0x4cc92a: cmp     ebx,0FF00006Eh=-16777106  \\false
+											fusegp102.c:111 case HAL_FUSE_STATUS_OPT_GPC:			nvlddmkm+0x4cc932: cmp     ebx,0FF00006Fh=-16777105  \\false
+											fusegp102.c:168  fuseGetStateByCommonOption_HAL()	nvlddmkm+0x4cc9f9: call    qword ptr [r14+250h]=nvlddmkm+0x4cc850 
+											fusegp107.c:157  fuseGetStateByCommonOption_HAL()	nvlddmkm+0x4ccc16: call    qword ptr [rdx+250h]=nvlddmkm+0x4cc850 \\ вызов 1373a0 с возвр a  и 2157c \\p90=1 //1050=0
+																					call    nvlddmkm+0x4a1f90 		\\p90 
+																					 call    nvlddmkm+0x4a3118 
+																					  call    nvlddmkm+0x4a1acc 
+				2157C  заменить результат с 1 на 0:  на этой точке ловим момент	2						       nvlddmkm+0x4a1cf6:      call    qword ptr [rdi+220h]=nvlddmkm+0x4a2334   //2157C
+ 				2157C  заменить результат с 1 на 0:  на этой точке меняем rax сразу после вызова rdi+368				nvlddmkm+0x4a23c4:	call    qword ptr [rdi+368h]  			//2157C
+									bifgk104_gf117.c:307 if (gen2Supported || gen3Supported)					nvlddmkm+0x23f308:  test    dil,dil //dil =1 на 1050 далее  jne     nvlddmkm+0x23f36e [br=1]  на 1050->длинный переход в коде ASM,но на с++ код продожается,а на p90[br=0] то есть в ASMе это просто код ниже, а с++ переход на bifgk104_gf117.c:350 else     // Gen1 only
+									bifgk104_gf117.c:309 tempRegVal = GPU_REG_RD32(pGpu, NV_PTOP_FS4=2241C);  			nvlddmkm+0x23f36e:  mov     esi,2241Ch; nvlddmkm+0x23f37e: call    qword ptr [rbx+368h]  // на 1050 возвр rax=81	bifgk104_gf117.c:352  // на p90 возвр rax=81
+									bifgk104_gf117.c:317 tempRegVal=GPU_REG_RD32(pGpu, DEVICE_BASE(NV_PCFG) + NV_XVE_PRIV_MISC_1);  nvlddmkm+0x23f3a5:  mov     esi,8841Ch; nvlddmkm+0x23f37e: call    qword ptr [rbx+368h]  // на 1050 возвр rax=340500	bifgk104_gf117.c:360  // на p90 возвр rax=340500
+									bifgk104_gf117.c:319 if (gen3Supported) 							nvlddmkm+0x23f3bf:  cmp     byte ptr [rbp+48h],r15b //на 1050 [rbp+48h]=0 переход на else
+									bifgk104_gf117.c:329 GPU_REG_WR32(pGpu, DEVICE_BASE(NV_PCFG) + NV_XVE_PRIV_MISC_1, tempRegVal)  nvlddmkm+0x23f3df:  call    qword ptr [rbx+330h] //на 1050 записываем c0340500 по адресу 8841Ch
+880A8 control!  	читаем	880A8					bifgk104_gf117.c:336 tempRegVal=GPU_REG_RD32(DEVICE_BASE(NV_PCFG)+NV_XVE_LINK_CONTROL_STATUS_2) nvlddmkm+0x23f3e5:  mov     esi,880A8h; nvlddmkm+0x23f3f5 call    qword ptr [rbx+368h]  // на 1050 возвр rax=10002   (02 00 01)  ||p10=
+									bifgk104_gf117.c:337 if (gen3Supported)  							nvlddmkm+0x23f3fd:  cmp     byte ptr [rbp+48h],r15b; je  nvlddmkm+0x23f40b //1050 [br=1] переход на else
+									bifgk104_gf117.c:343 tempRegVal2 = FLD_SET_DRF(_XVE, _LINK_CONTROL_STATUS_2, _TARGET_LINK_SPEED, _5P0, tempRegVal);   nvlddmkm+0x23f40e:     or      ecx,2
+ВАЖНО ПОПАСТЬ, чтобы записать по 880A8 = 10002				bifgk104_gf117.c:345 if (tempRegVal != tempRegVal2) 						nvlddmkm+0x23f411:  cmp     eax,ecx; nvlddmkm+0x23f413:  je  nvlddmkm+0x23f42a	//1050 [br=1] true , внутрь на write не входим, переход чуть ниже
+                         Попытка Write "2"   по 880A8                   bifgk104_gf117.c:347 GPU_REG_WR32(pGpu, DEVICE_BASE(NV_PCFG) + NV_XVE_LINK_CONTROL_STATUS_2.) nvlddmkm+0x23f424: call    qword ptr [rbx+330h] //срабатывает, если включен gen2 (3) в регистре 88610 = 1001
+									->приход p90:
+									bifgk104_gf117.c:369 tempRegVal=GPU_REG_RD32(pGpu, NV_XP_PL_LCTRL_2(0) = 8C1C0h); 		nvlddmkm+0x23f435:  call    qword ptr [rbx+368h]  // на 1050 возвр rax=130036  // на p90cold также
+									bifgk104_gf117.c:370 if (gen3Supported) 							nvlddmkm+0x23f442:  сmp     byte ptr [rbp+48h],r15b;  je   nvlddmkm+0x23f452 //1050 [br=1] переход на else if (gen2Supported) 
+									bifgk104_gf117.c:374 else if (gen2Supported) 							nvlddmkm+0x23f452:       test    dil,dil
+								1050	bifgk104_gf117.c:376 tempRegVal2 = FLD_SET_DRF(_XP, _PL_LCTRL_2, _DATA_RATE_SUPPORTED, _5P0_2P5, tempRegVal); nvlddmkm+0x23f457:  and     ecx,0FFF2FFFFh ;  bts     ecx,11h  после этого ecx стал 120036 был 130036
+								p90	bifgk104_gf117.c:380 tempRegVal2 = FLD_SET_DRF(_XP, _PL_LCTRL_2, _DATA_RATE_SUPPORTED, _2P5, tempRegVal); nvlddmkm+0x23f457:  and     ecx,0FFF1FFFFh ;  bts     ecx,11h  после этого ecx стал 120036 был 110036
+									bifgk104_gf117.c:382 if (tempRegVal != tempRegVal2) nvlddmkm+0x23f46d:         cmp     eax,ecx  //1050 true {eax=130036 ; ecx=120036} //входим внутрь на write   //p90 true {eax=130036 ; ecx=110036} //входим внутрь на write 
+ТО Место,где по 8C1C0 записывается 120036, где нельзя изменить в dbg	bifgk104_gf117.c:384 GPU_REG_WR32(pGpu, NV_XP_PL_LCTRL_2(0) = 8C1C0h, tempRegVal2); 		nvlddmkm+0x23f480: call    qword ptr [rbx+330h]  //на 1050 вписываем по адресу 8C1C0h  значение 120036 (было 130036)  //на p90 вписываем по адресу 8C1C0h  значение 110036 (было 130036)
+   // Set PL_CYA_0 to allow Gen3 if supported, and disallow otherwise:	bifgk104_gf117.c:389 tempRegVal = GPU_REG_RD32(pGpu, NV_XP_PL_CYA_0 = 8C2C0h);			nvlddmkm+0x23f486: mov edi,8C2C0h;  nvlddmkm+0x23f496: call  qword ptr [rbx+368h]  // на 1050 возвр rax=60711b3 // на p90 тоже 60711b3
+									bifgk104_gf117.c:390 if (gen3Supported)								nvlddmkm+0x23f49c: mov     dl,byte ptr [rbp+48h]=0 ; nvlddmkm+0x23f4a1:     test    dl,dl nvlddmkm+0x23f4a3: je      nvlddmkm+0x23f4ad //1050 [br=1] переход на else
+									bifgk104_gf117.c:397  else {tempRegVal2 = FLD_SET_DRF(_XP, _PL_CYA_0, _DISABLE_GEN3_SPEED, _TRUE, tempRegVal); nvlddmkm+0x23f4ad:      bts     ecx,17h  //1050  ecx = 60711b3->68711b3   // на p90cold также
+									bifgk104_gf117.c:399 if (tempRegVal != tempRegVal2)						nvlddmkm+0x23f4b1: cmp     eax,ecx //1050 true входим внутрь на write  // на p90cold также
+									bifgk104_gf117.c:401 GPU_REG_WR32(pGpu, NV_XP_PL_CYA_0, tempRegVal2);				nvlddmkm+0x23f4c4: call    qword ptr [rbx+330h] //на 1050 вписываем по адресу 8C2C0h  значение 68711b3 (было 60711b3)  // на p90cold также
+									bifgk104_gf117.c:404 if (gen3Supported){  							nvlddmkm+0x23f4ca: mov     dl,byte ptr [rbp+48h]=0 ; test dl,dl; je nvlddmkm+0x23f4de //[br=1] на 1050 -т.к. не проходит условие, идем через след.ф-цию
+					*на gen2 не выполняется)	 bifgk104_gf117.c:406         bifSetPostEqznLinkSpeedNoChange_HAL(pGpu, pBif); 		        nvlddmkm+0x23f4d7: call    qword ptr [r14+3A8h]= nvlddmkm+0x33e9d0 //на 1050 gen2 не выполняется по верхнему условию	   // на p90cold пропускаем
+   // Set target link speed equal to current link speed:		bifgk104_gf117.c:411 tempRegVal =GPU_REG_RD32(pGpu, NV_XP_PL_LINK_CONFIG_0(0)=8C040);		nvlddmkm+0x23f4de: mov     r14d,8C040h; nvlddmkm+0x23f4ef: call    qword ptr [rbx+368h] // на 1050g2 возвр rax=80085800	 //p90=20085800	
+ 									bifgk104_gf117.c:413 tempRegVal2=GPU_REG_RD32(.DEVICE_BASE(NV_PCFG)+NV_XVE_LINK_CONTROL_STATUS) nvlddmkm+0x23f4f5: mov     r9d,88088h;  nvlddmkm+0x23f505: call    qword ptr [rbx+368h] // на 1050g2 возвр rax=11010040  //p90=10210040
+ 						current link speed:	bifgk104_gf117.c:414 tempRegVal2=GPU_DRF_VAL(_XVE,_LINK_CONTROL_STATUS,_LINK_SPEED,tempRegVal2) nvlddmkm+0x23f50b: shr  eax,10h(//1050: 11010040->1101  //p90: 10210040->1021);and eax,0Fh(//1050: 1101->1  //p90:1021->1)
+ 						                  	bifgk104_gf117.c:416 switch (tempRegVal2)							nvlddmkm+0x23f511: sub     eax,1; je      nvlddmkm+0x23f533   // на 1050g2 получилось  case NV_XVE_LINK_CONTROL_STATUS_LINK_SPEED_2P5 или gen1
+ 						                  	bifgk104_gf117.c:419 FLD_SET_DRF_DEF(XP,_PL_LINK_CONFIG_0,_MAX_LINK_RATE,_2500_MTPS,tempRegVal) nvlddmkm+0x23f533: btr     edi,12h; bts edi,13h   //1050:(80085800->80085800)   //p90:(20085800->20085800)
+ 						                  	bifgk104_gf117.c:433 GPU_REG_WR32(pGpu, NV_XP_PL_LINK_CONFIG_0(0), tempRegVal);			nvlddmkm+0x23f53b: mov  r9d,r14d=8c040; mov dword ptr [rsp+20h],edi=80085800; nvlddmkm+0x23f54a: call qword ptr [rbx+330h] //на 1050g2 вписываем по адресу 8c040 значение 80085800 //на p90 вписываем по адресу 8c040 значение 20085800
+ 						                  	bifgk104_gf117.c:435 return NV_OK;								nvlddmkm+0x23f562:         ret
+								bifgk104_gf117.c:550  bifInitializeProdSettings_HAL() 						nvlddmkm+0x23dc76:	call    qword ptr [rbx+4D0h]=nvlddmkm+0x45c03c		\\p90 rax=0 r10=1e0ed
+									bifgm107.c:115  bifInitializeProdSettings_GM107(){					--------nvlddmkm+0x45c03c--------
+									bifgm107.c:124  bifInitializeProdRetimingStages_HAL(..)						nvlddmkm+0x45c04c: call    qword ptr [rdx+4D8h]=nvlddmkm+0x47da74
+										bifgp100.c:144 bifInitializeProdRetimingStages_GP100(){					--------nvlddmkm+0x47da74------ ничего особенно не происходит что считалось то и записалость по регистру 8B940
+									bifgm107.c:127  tmp = GPU_REG_RD32(pGpu, NV_XP_PL_PAD_PWRDN=8C384);			nvlddmkm+0x45c052: mov     r9d,8C384h; call  qword ptr [rbx+368h] //возвр \\p90 rax=e8000005
+									bifgm107.c:130  GPU_REG_WR32(pGpu, NV_XP_PL_PAD_PWRDN=8C384, tmp);			nvlddmkm+0x45c081: call    qword ptr [rbx+330h] \\p90 записывается тоже самое значение e8000005 в регистр 8C384
+									bifgm107.c:135	GPU_BUS_CFG_RD32(pGpu, pBif, NV_XVE_CYA_3, &tmp);	рег"221c2"      nvlddmkm+0x45c098: call    nvlddmkm+0x24062c \\p90 считалось по регистру 221c2 = 1e0ed
+									bifgm107.c:137  GPU_BUS_CFG_WR32(pGpu, pBif, NV_XVE_CYA_3, tmp); запись уже по 88708   nvlddmkm+0x45c0b7:  call    qword ptr [rdi+3D8h] \\по регистру  88708 записыв.1e0ed
+								bifgk104_gf117.c:552 if (flags & GPU_STATE_FLAGS_PM_TRANSITION=4) 				nvlddmkm+0x23dc7c:  test    r14b,4 ;     je      nvlddmkm+0x23dcc9  //1050 r14=0 условие не выполн.[br=1]->переход  \\p90 также
+								bifgk104_gf117.c:568 bifCheckPrivRing_HAL(pGpu, pBif);						nvlddmkm+0x23dccf: call    qword ptr [rbx+388h]=nvlddmkm+0x2ef650   //1050 возвр rax=58003121		\\p90 возвр rax=18003121
+								bifgk104_gf117.c:569 bifEnableInterrupts_HAL(pGpu, pBif);					nvlddmkm+0x23dcdb: call    qword ptr [rbx+3С8h]=nvlddmkm+0x23f564   //1050 возвр rax=0			\\p90 возвр rax=0
+								bifgk104_gf117.c:571 bifEnablePbiMsgboxInterrupt_HAL(pGpu, pBif); 				nvlddmkm+0x23dce7:  call    nvlddmkm+0x20ffd8			 //1050 возвр rax=0; r10=c0b40500	\\p90 возвр rax=0; r10=c0b46500
+								bifgk104_gf117.c:573 if (NV_OK != GPU_BUS_CFG_RD32(pGpu, pBif, NV_XVE_DEVICE_CAPABILITY=8807c)  nvlddmkm+0x23dcec: mov     r9d,8807Ch;   call    qword ptr [rdi+370h]   //1050 возвр 12c8de1     	\\p90 = 8de1
+								bifgk104_gf117.c:578 reg = GPU_DRF_VAL(_XVE, _DEVICE_CAPABILITY, _EXTENDED_TAG_FIELD_SIZE, reg) nvlddmkm+0x23dd05: shr     eax,5			//1050 rax=(12c8de1)->(9646f)   		\\p90 rax=(8de1)->(46f)   
+								bifgk104_gf117.c:579 if ((reg != 0) &&								nvlddmkm+0x23dd0e: and     eax,r14d ;   je      nvlddmkm+0x23dd4c [br=0] //\\(rax=1) 	 	1e условие выполняется идем внутрь
+								bifgk104_gf117.c:580 !pCl->getProperty(pCl, PDB_PROP_CL_EXTENDED_TAG_FIELD_NOT_CAPABLE))	nvlddmkm+0x23dd13: cmp     byte ptr [rsi+80h]=0,r13b ;     jne     nvlddmkm+0x23dd4c [br=0] //\\2e условие выполняется идем внутрь
+								bifgk104_gf117.c:582 if(NV_OK!=GPU_BUS_CFG_RD32(pGpu,pBif,NV_XVE_DEVICE_CONTROL_STATUS=88080))	nvlddmkm+0x23dd1c: mov     r9d,88080h	; call    qword ptr [rdi+370h]  \\p90 возвр rax=2117
+								bifgk104_gf117.c:588 FLD_SET_..(_XVE,_DEVICE_CONTROL_STATUS,_EXTENDED_TAG_FIELD_ENABLE,_ENABLED)nvlddmkm+0x23dd3c: bts     eax,8  \\p90 rax=2117->2117  манипуляция ничего не изменила)
+ 88080 получается подменить 2927 вместо 2117			bifgk104_gf117.c:590 GPU_BUS_CFG_WR32(pGpu, pBif, NV_XVE_DEVICE_CONTROL_STATUS, reg); 		nvlddmkm+0x23dd46: call    qword ptr [rbx+3D8h]=nvlddmkm+0x240fe8  \\p90 rax=2117->2117  манипуляция ничего не изменила)
+								bifgk104_gf117.c:598 if (pBif->getProperty(pBif, PDB_PROP_BIF_CYA_MASK_L0S))			nvlddmkm+0x23dd4c: cmp     byte ptr [rbx+6F9h],r13b=0  \\p90=ptr[rbx+6F9h]= 0 условие не срабатывает , внутрь не заходим идем дальше
+								bifgk104_gf117.c:603 if (pBif->getProperty(pBif, PDB_PROP_BIF_CYA_MASK_L1)) 			nvlddmkm+0x23dd64: cmp     byte ptr [rbx+6FAh],r13b=0  \\p90=ptr[rbx+6FAh]= 0 условие не срабатывает , внутрь не заходим идем дальше
+								bifgk104_gf117.c:614 bifApplyWarForBug944573_HAL(pGpu, pBif);					nvlddmkm+0x23dd82: call    qword ptr [rbx+5F0h]=nvlddmkm+0x2434f0  //Заглушка
+	ПОСТАВИТЬ false на PDB_PROP_PERF_CLOCKING_DYNAMIC!	bifgk104_gf117.c:621 if ( (!pPerf->getProperty(pPerf, PDB_PROP_PERF_CLOCKING_DYNAMIC)) ||	nvlddmkm+0x23dd88: cmp     byte ptr [rbp+0BB0h],r13b    \\p90=ptr[rbp+0BB0h]= 1 
+!Здесь ключ для выполнения bifSetBusSpeed_HAL! надо зайти	bifgk104_gf117.c:622   (!pPerf->getProperty(pPerf, PDB_PROP_PERF_PCIEGEN_SWITCHING_ENABLED)) )	nvlddmkm+0x23dd91: cmp     byte ptr [rbp+0BC3h],r13b  ;   jne     nvlddmkm+0x23ddda [p90->br=1]   \\p90=ptr[rbp+0BC3h]= 1  ; условие не выполняется для p90 - длиный переход
+					Далее p90 обходит возможность выполнить функции bifSetBusSpeed_HAL() , но пробуем выполнить: 
+								bifgk104_gf117.c:624 if (pBif->getProperty(pBif, PDB_PROP_BIF_PCIE_GEN4_CAPABLE)) 		nvlddmkm+0x23dd9a: cmp     byte ptr [rbx+6EFh]=0,r13b; если true, то  mov     r8d,4 
+								bifgk104_gf117.c:630 else if (pBif->getProperty(pBif, PDB_PROP_BIF_PCIE_GEN3_CAPABLE)) 		nvlddmkm+0x23ddab: cmp     byte ptr [rbx+6EEh]=0,r13b; если true, то  mov     r8d,3 
+																				nvlddmkm+0x23ddbc: mov     r8d,2 //все равно код ставит двойку на всякий случай
+								bifgk104_gf117.c:636 else if (pBif->getProperty(pBif, PDB_PROP_BIF_PCIE_GEN2_CAPABLE)) 		nvlddmkm+0x23ddc2: cmp     byte ptr [rbx+6EDh]=0,r13b; 
+								bifgk104_gf117.c:642 else{									nvlddmkm+0x23ddcb: mov     r8d,r14d=1  else выставляет единицу
+								bifgk104_gf117.c:644 bifSetBusSpeed_HAL(pGpu, pBif, BIF_CHANGE_BUS_SPEED_GEN1PCIE); 		nvlddmkm+0x23ddd4: call    qword ptr[rbx+490h]=nvlddmkm+0x2408f4
+									bifgk104_gf117.c:1187 bifSetBusSpeed_GK104()						--------nvlddmkm+0x2408f4-------
+									bifgk104_gf117.c:1202 status=gpuSanityCheckRegisterAccess_HAL(pGpu, 0, NV_FALSE, NULL) 		nvlddmkm+0x240929: call    qword ptr [rcx+810h]=nvlddmkm+0x27f5a4
+									bifgk104_gf117.c:1207 if (NV_OK != GPU_BUS_CFG_RD32(pGpu, pBif, NV_XVE_LINK_CONTROL_STATUS,..)) nvlddmkm+0x24093d: mov   r9d,88088h ; nvlddmkm+0x24094b: call    qword ptr [rsi+370h]
+									bifgk104_gf117.c:1213 curWidth=GPU_DRF_VAL(_XVE,_LINK_CONTROL_STATUS,_NEGOTIATED_LINK_WIDTH,..)	nvlddmkm+0x240953:shr eax,14 (10210040->102);  and eax,3F(102->2);  nvlddmkm+0x24095c: mov  dword ptr [rsp+60h],eax=2 \\p90 eax=2 width
+									bifgk104_gf117.c:1212 curSpeed=GPU_DRF_VAL(_XVE,_LINK_CONTROL_STATUS,_LINK_SPEED, tempVal);	nvlddmkm+0x240959:shr ebx,10h(10210040->1021); and ebx,0Fh(1021->1)
+									bifgk104_gf117.c:1216  switch (cmd)    {	nvlddmkm+0x240963:   mov     eax,edi (edi=cmd(p90=1))  ; sub eax,1 -> 1-1=0;  je      nvlddmkm+0x24099d [br(p90)=1]  переходим к условию case BIF_CHANGE_BUS_SPEED_GEN1PCIE:
+									bifgk104_gf117.c:1220 if ((curSpeed == NV_XVE_LINK_CONTROL_STATUS_LINK_SPEED_5P0) &&		nvlddmkm+0x24099d: mov     edi,2;  cmp     ebx=1,edi=2 ; jne nvlddmkm+0x2409fb  [br=1] //обходим дикое условие ниже
+									bifgk104_gf117.c:1236 targetSpeed = NV_XVE_LINK_CONTROL_STATUS_LINK_SPEED_2P5; 			nvlddmkm+0x2409fb: mov     edi,1
+			пробуем на p90 ручками поставить edi=2		bifgk104_gf117.c:1261 if (.. (pBif->LastSpeedSet < curSpeed)) 					nvlddmkm+0x240a1f: cmp     edi=2,ebx=1  \\ ставим чуть раньше edi=2
+									bifgk104_gf117.c:1278 if (curSpeed < targetSpeed)						nvlddmkm+0x240a27: cmp     ebx,edi ;  jae     nvlddmkm+0x240a4d [br=0] //всё ок идем далее по коду
+											      	curWidth - восстанавливаем из памяти для ф-ции bifReplayTimerWar_HAL()	nvlddmkm+0x240a2b: mov     r9d,dword ptr [rsp+60h] = 2
+												curSpeed - подготавливаем для для ф-ции bifReplayTimerWar_HAL()		nvlddmkm+0x240a30: mov     r8d,ebx=1
+												TRUE  - устанавл посл.аргумент для ф-ции  bifReplayTimerWar_HAL()  	nvlddmkm+0x240a33: mov     byte ptr [rsp+30h],1
+												TargetSpeed - уст.для ф-ции bifReplayTimerWar_HAL()			nvlddmkm+0x240a43: mov     dword ptr [rsp+20h],edi
+				 // Temporary set Replay Timer Value	bifgk104_gf117.c:1281  bifReplayTimerWar_HAL(..curSpeed,curWidth,targetSpeed,curWidth,NV_TRUE)  nvlddmkm+0x240a47:  call    qword ptr [rbp+5C8h]
+										....................todo
+		// Program xve registers to set to desired speed	bifgk104_gf117.c:1285  bifChangeBusSpeed_HAL(pGpu, pBif, cmd); 					nvlddmkm+0x240a58:  call    qword ptr [rbp+498h]=nvlddmkm+0x23df38
+										bifgk104_gf117.c:1372  bifChangeBusSpeed_GK104(){					---------nvlddmkm+0x23df38--------
+										bifgk104_gf117.c:1394  if ((cmd != BIF_CHANGE_BUS_SPEED_GEN1PCIE) &&			nvlddmkm+0x23df8e: cmp     r8d,1 (\\p90 true);  je  nvlddmkm+0x23dfa7 [br=1]
+			пришлось еще раз ручками поставить r14=2		bifgk104_gf117.c:1401  if ((cmd == BIF_CHANGE_BUS_SPEED_GEN2PCIE) &&			nvlddmkm+0x23dfa7: cmp     r14d,2  (\\p90 true - поставил ручками)
+										bifgk104_gf117.c:1402  	  (pBif->getProperty(pBif, PDB_PROP_BIF_DISABLE_GEN2))	nvlddmkm+0x23dfb1: cmp     byte ptr [rdx+6F7h]=0,sil=0  (\\p90 false) на эксепшн ниже не попадаем
+										bifgk104_gf117.c:1408  if ((cmd == BIF_CHANGE_BUS_SPEED_GEN2PCIE) &&			nvlddmkm+0x23dfba: cmp     r14d,2  (\\p90 true - поставил ранее ручками)
+										bifgk104_gf117.c:1409     (!(pBif->getProperty(pBif, PDB_PROP_BIF_PCIE_GEN2_CAPABLE)))) nvlddmkm+0x23dfc4: cmp     byte ptr [rdx+6EDh]=0,sil  \\на p90 PDB_PROP_BIF_PCIE_GEN2_CAPABLE=0, устанавливался выше (bifgk104_gf117.c:636), НО ставим ручками =1
+						код по gen3 пока пропускаем	* bifgk104_gf117.c:1416 	if ((cmd == BIF_CHANGE_BUS_SPEED_GEN3PCIE) &&
+	// Disable ASPM temporary during speed change (bug 529899)		bifgk104_gf117.c:1425  bifEnterDisableAspmWar_HAL(pGpu, pBif);				nvlddmkm+0x23dfcd: call    nvlddmkm+0x33e08c 
+											bifgk104.c:911 PBIFHALINFO_KEPLER pBifHalInfo = BIF_GET_KEPLER_INFOBLK(pBif); 			nvlddmkm+0x33e0ad:  call    qword ptr [rbx+2A8h] \\p90 возвр rax=ffffa68952cca000
+											bifgk104.c:915 RM_ASSERT(pBifHalInfo);								nvlddmkm+0x33e0b6: test    rax,rax;  jne nvlddmkm+0x33e0c0 [br=1] - НЕ АССЕРТ! его обходим
+											bifgk104.c:917 status=bifReadGpuConfigReg_HAL(pGpu,pBif,NV_XVE_PRIV_XV_0=0x88150,&xvePrivXv0);  nvlddmkm+0x33e0d1: call    nvlddmkm+0x24062c \\p90 rax=e0000195
+											bifgk104.c:920 pBifHalInfo->bCyaL0sEnable = !! DRF_VAL(_XVE, _PRIV_XV_0, _CYA_L0S_ENABLE, ..);  nvlddmkm+0x33e0f1: mov     byte ptr [rsi+2008h],al=1   \\rax=e0000195->rax=1c00001 -> al=1
+											bifgk104.c:921 pBifHalInfo->bCyaL1Enable  = !! DRF_VAL(_XVE, _PRIV_XV_0, _CYA_L1_ENABLE , ..);  nvlddmkm+0x33e100: mov     byte ptr [rsi+2009h],al=1   \\rax=e0000195->rax=e00001-> al=1
+											bifgk104.c:923 bifEnableL0sMask_HAL(pGpu, pBif, NV_TRUE);	nvlddmkm+0x33e106:  call    qword ptr [rbx+4A8h]=nvlddmkm+0x45bbb4	\\внутри опять читается и записывается значение rax=e0000195 по регистру 88150
+											bifgk104.c:924 bifEnableL1Mask_HAL(pGpu, pBif, NV_TRUE);	nvlddmkm+0x33e115:  call    qword ptr [rbx+4B0h]=nvlddmkm+0x45bc64	\\p90 внутри по регистру 8b980 читается rax=200a043  и потом опять записывается тоже самое 200a043 по этому рег-ру, а потом опять read write rax=e0000195 по регистру 88150
+					// Set safe timings			bifgk104_gf117.c:1428  dlMgr0 = GPU_REG_RD32(pGpu, NV_XP_DL_MGR_0(0)); 			nvlddmkm+0x23dfd2:    mov     ebx,8B8C0h  \\p90 rax=640007
+										bifgk104_gf117.c:1430 FLD_SET_DRF_DEF(_XP, _DL_MGR_0, _SAFE_TIMING, _ENABLE, tempRegVal)nvlddmkm+0x23dfef:    or      eax,4       \\p90 rax=640007->rax=640007 ничего не изменилось
+										bifgk104_gf117.c:1433 if (IsGK107MaskRevA01(pGpu))					nvlddmkm+0x23e007:   call    nvlddmkm+0x27c06c \\false ; je      nvlddmkm+0x23e046[br=1]
+										bifgk104_gf117.c:1444 enable20usTimerBugWars = pBif->getProperty(...   			nvlddmkm+0x23e046: mov     al,byte ptr [r15+709h]
+										bifgk104_gf117.c:1445 if (enable20usTimerBugWars)        				nvlddmkm+0x23e059:     test    al,al \\false;   je      nvlddmkm+0x23e0c9 [br=1]
+										bifgk104_gf117.c:1468 if (IS_RTLSIM(pGpu))    						nvlddmkm+0x23e0c9:  cmp     byte ptr [rdi+0A06h],sil \\false;    je      nvlddmkm+0x23e0ee  [br=1]
+										bifgk104_gf117.c:1486 gpuSetTimeout(pGpu, GPU_TIMEOUT_DEFAULT, &timeout, 0);		nvlddmkm+0x23e0fb:  call    qword ptr [rdi+268h]=nvlddmkm+0x20b3a4
+								do		bifgk104_gf117.c:1489 rmStatus = gpuCheckTimeout(pGpu, &timeout);			nvlddmkm+0x23e109:  call    qword ptr [rdi+270h]= nvlddmkm+0x206478
+										bifgk104_gf117.c:1490 tempRegVal = GPU_REG_RD32(pGpu, NV_XP_PL_LINK_CONFIG_0(0)=8c040) 	nvlddmkm+0x23e10f:  mov     r9d,8C040h
+										bifgk104_gf117.c:1499     switch (cmd=2)							nvlddmkm+0x23e130:	mov     eax,r14d=2 ;...;   je      nvlddmkm+0x23e16d [br=1]
+										bifgk104_gf117.c:1506  FLD_SET_DRF_DEF(_XP, _PL_LINK_CONFIG_0, _MAX_LINK_RATE, _5000_MTPS, tempRegVal);    nvlddmkm+0x23e16d: btr     esi,13h (rsi=20085800->20005800);   bts     esi,12h=2  (rsi=20005800->20045800); jmp     nvlddmkm+0x23e18b
+																						nvlddmkm+0x23e18b:    and     qword ptr [rsp+20h]=640007,0	->\\ [rsp+20h]=0
+										bifgk104_gf117.c:1518  if (NV_OK != GPU_BUS_CFG_RD32(pGpu, pBif, NV_XVE_LINK_CONTROL_STATUS, &tempRegVal2)) 		nvlddmkm+0x23e191:  mov     r9d,88088h ; call    qword ptr [rdi+370h] \\rax=10210040
+						получаем текущуюю ширину	bifgk104_gf117.c:1520  tempRegVal2 = GPU_DRF_VAL(_XVE, _LINK_CONTROL_STATUS, _NEGOTIATED_LINK_WIDTH, tempRegVal2);	nvlddmkm+0x23e1a5: shreax,14h; and eax,3Fh	\\10210040->2
+// Set target link width equal to current link width				bifgk104_gf117.c:1525  switch (tempRegVal2=2) 										nvlddmkm+0x23e1ab: sub     eax=2,1 ; sub     eax=1,1 ;  nvlddmkm+0x23e1b3:   je      nvlddmkm+0x23e1e9[br=1]
+        									
+										bifgk104_gf117.c:1539  case NV_XVE_LINK_CONTROL_STATUS_NEGOTIATED_LINK_WIDTH_X1: 	nvlddmkm+0x23e1ab:  sub     eax,1;  nvlddmkm+0x23e1ae: je      nvlddmkm+0x23e1f5 [br=1]
+										bifgk104_gf117.c:1540  FLD_SET_DRF_DEF(_XP, _PL_LINK_CONFIG_0, _TARGET_TX_WIDTH, _x1    nvlddmkm+0x23e1f5:  or      esi,700000h  //gtx650 80649000->80749000
+										bifgk104_gf117.c:1555  GPU_REG_WR32(pGpu, NV_XP_PL_LINK_CONFIG_0(0), tempRegVal);	nvlddmkm+0x23e20f:   call    qword ptr [rdi+330h] //по 8c040 записывается новое значение  80749000
+										bifgk104_gf117.c:1556  tempRegVal2 = GPU_REG_RD32(pGpu, NV_XP_PL_LINK_CONFIG_0(0));	nvlddmkm+0x23e220:    call    qword ptr [rdi+368h]
+										bifgk104_gf117.c:1557  rmStatus = gpuCheckTimeout(pGpu, &timeout);			nvlddmkm+0x23e230: call    qword ptr [rdi+270h]
+										bifgk104_gf117.c:1558  while((tempRegVal2 != tempRegVal)  				nvlddmkm+0x23e236:  cmp     ebx,esi
+			// Poll after link speed changes are complete		bifgk104_gf117.c:1561   gpuSetTimeout(pGpu, GPU_TIMEOUT_DEFAULT, &timeout, 0);		nvlddmkm+0x23e24c:  call    qword ptr [rdi+268h]
+										bifgk104_gf117.c:1568  if ((cmd == BIF_CHANGE_BUS_SPEED_GEN3PCIE) 			nvlddmkm+0x23e259:     cmp     r14d,3 ;  jne     nvlddmkm+0x23e286[br=1]
+										bifgk104_gf117.c:1576  else{ FLD_SET_DRF_DEF(_XP, _PL_LINK_CONFIG_0, _LTSSM_DIRECTIVE, _CHANGE_SPEED 	nvlddmkm+0x23e286:  and     esi,0FFFFFFF1h; or esi,1  //80749000->80749001
+										bifgk104_gf117.c:1577        GPU_REG_WR32(pGpu, NV_XP_PL_LINK_CONFIG_0(0), xpPlLinkConfig0);		nvlddmkm+0x23e29e:  call    qword ptr [rdi+330h]
+В Результате махинаций надо, чтобы в 8C040 вписывалось хорошее число, например 80845800
+										bifgk104_gf117.c:1583 tempRegVal=pOS->osGpuReadReg032(pOS,..,NV_XP_PL_LINK_CONFIG_0(0)  nvlddmkm+0x23e2b2: mov     r8d,8C040h;  nvlddmkm+0x23e2c5: call    qword ptr [rax+100h]
+										bifgk104_gf117.c:1584 if ((tempRegVal != 0xFFFFFFFF) &&					nvlddmkm+0x23e2cb: or  ecx,0FFFFFFFFh; nvlddmkm+0x23e2ce: cmp  eax,ecx ;   je      nvlddmkm+0x23e2d6 [br=0]
+										bifgk104_gf117.c:1585 	FLD_..(.._LTSSM_STATUS_IDLE.. && (FLD_(.._NORMAL_OPERATIONS..)  nvlddmkm+0x23e2d2: test    al=0,1Fh ;  je      nvlddmkm+0x23e2dd [br=1]
+										bifgk104_gf117.c:1587   rmStatus = NV_OK; 	nvlddmkm+0x23e2dd:        xor     ebx,ebx;   test  ebx,ebx ;   je   nvlddmkm+0x23e2fe [br=1]  //ebx=0=NV_OK
+										bifgk104_gf117.c:1609 if (NV_OK != GPU_BUS_CFG_RD32(.. NV_XVE_LINK_CONTROL_STATUS, ..)  nvlddmkm+0x23e304: mov     r9d,88088h ; nvlddmkm+0x23e312:   call    qword ptr [rdi+370h]
+										bifgk104_gf117.c:1619  while(... && (retryCount++ < 10))	nvlddmkm+0x23e34a: inc ecx;  nvlddmkm+0x23e353:  cmp   eax,0Ah; 
+										bifgk104_gf117.c:1624  tempRegVal2 = GPU_REG_RD32(pGpu, NV_XP_PL_LINK_CONFIG_0(0));	nvlddmkm+0x23e35c: mov     esi,8C040h ; nvlddmkm+0x23e36c: call    qword ptr [rdi+368h]
+Принудительно ставим eax =2							bifgk104_gf117.c:1625  switch (tempRegVal) nvlddmkm+0x23e374:  mov     eax,ebp   //Принудительно ставим eax =2
+	 									bifgk104_gf117.c:1630  case NV_XVE_LINK_CONTROL_STATUS_LINK_SPEED_5P0:			nvlddmkm+0x23e37e: je      nvlddmkm+0x23e3d7
+	 									bifgk104_gf117.c:1631  FLD_SET_DRF_DEF(_XP,_PL_LINK_CONFIG_0,_MAX_LINK_RATE,_5000_MTPS)	nvlddmkm+0x23e3d7:  btr     ebx,13h  //80845800->80845800 ; bts ebx,12h //80845800->80845800; jmp     nvlddmkm+0x23e392
+	 									bifgk104_gf117.c:1641  GPU_REG_WR32(pGpu, NV_XP_PL_LINK_CONFIG_0(0), tempRegVal2); 	nvlddmkm+0x23e3a1:  call    qword ptr [rdi+330h]
+
+
+
+
+
+
+
+
+
+
+
+
+TODO
+
+//Кусок кода при анализе engstateStateInit при rsi=3 и 4
+смотр.[r8+7A1h]			мод          objgpu.c:5493  rmStatus= engstateStateInit(..)	 nvlddmkm+0x20b9bb:  call    qword ptr [rax+0A0h] =nvlddmkm+0x649070	//при счетчике rsi=4 выдает рез-тат ffff   		*****************r8=ffffe50ff6d50000******************
+						objengstate.c:131 engstateStateInit_IMPL(){	--------nvlddmkm+0x649070 
+						objengstate.c:133 ....(rmGpuLockIsOwner());					call    nvlddmkm+0x21c994	
+						objengstate.c:140 rmGpuLocksRelease() 						call    nvlddmkm+0x21cad4
+						objengstate.c:142 status = engstateStateInitUnlocked() 				call    qword ptr [rax+0B0h]
+						objengstate.c:143 lockStatus = rmGpuLocksAcquire() 				call    nvlddmkm+0x21ca08
+						objengstate.c:151 engstateStateInitLocked(..);		nvlddmkm+0x6490d8:    	call    qword ptr [rax+0A8h] = nvlddmkm+0x2d5a14
+Порядок запуска Объектов OBJENGSTATE определен в objgpu.h:1550 {0=FUSE;1=BIF;2=NNE;3=MC;4=FB;5=FBFLCN...
+								objgpu.c:2034 ?gpuGetEngstateNoShare_IMPL()------nvlddmkm+0x2d5a14-----	
+														nvlddmkm+0x2d5a1b:  jmp     qword ptr [rax+470h]=nvlddmkm+0x58158c						
+															nvlddmkm+0x5815f8:      call    nvlddmkm+0x6bc8a8 //немод rax=0;  мод=ffff
+																nvlddmkm+0x6bc8b8:   call    qword ptr [rdx+3F8h]=nvlddmkm+0x601eb8
+											GetGPU..					nvlddmkm+0x601ed9:      call    nvlddmkm+0x205370
+																		nvlddmkm+0x205370  cmp     byte ptr [rcx+0A20h]  //немод [rcx+0A20h=01]
+																		nvlddmkm+0x205377: jne     nvlddmkm+0x205399 //[br=1]  идем на выход
+																	nvlddmkm+0x601efb:    call    qword ptr [rdi+5C0h]= nvlddmkm+0x536194  //немод возвр rax=0
+																		nvlddmkm+0x5361a8:  cmp     byte ptr [rcx+2CBCh],0 //немод [rcx+2CBCh=01]
+											osAllocMem() 						nvlddmkm+0x5361cd:	 call    nvlddmkm+0x1f6cb4  //немод возвр адрес rax=ffffce8657014750
+																		nvlddmkm+0x5361fc:     call    nvlddmkm+0x2f1208 //немод возвр адрес rax=0
+																	nvlddmkm+0x601f21:    	call    qword ptr [rdi+5C8h]=nvlddmkm+0x535fd0  //немод возвр rax=0 rdx=20
+																	nvlddmkm+0x601f44:    	call    qword ptr [rdi+5C8h]=nvlddmkm+0x535fd0  //немод возвр rax=0 rdx=40
+																	nvlddmkm+0x601f57: 	cmp     byte ptr [rbp+993h],0  //немод [rbp+993h=01] на джампе  не перепрыггиваем - идем дальше
+																	nvlddmkm+0x601f70: 	call    qword ptr [rdi+5C8h]=nvlddmkm+0x535fd0  //немод возвр rax=0 rcx=a rdx=400
+																	nvlddmkm+0x601f8d:	call    qword ptr [rdi+5D0h]=nvlddmkm+0x536090  //немод возвр rax=0 rcx=460 rdx=1f
+																nvlddmkm+0x6bc8c8:    	call    qword ptr [rbx+238h]= nvlddmkm+0x600ea4	//немод возвр rax=0
+																nvlddmkm+0x6bc8d8:	call    qword ptr [rbx+2A0h]= nvlddmkm+0x5ff2c0 //немод возвр rax=0 //мод rax=56
+																	nvlddmkm+0x5ff2e9:	call    nvlddmkm+0x2c5d38 //mod=0	\\nomod rax=0		
+																		nvlddmkm+0x2c5d70:	call    nvlddmkm+0x2f1208 (флаги мода 	zf=1;cf=0;sf=0) - флаги до вызова ф-ции  //немод возр 0
+																				nvlddmkm+0x2f1208:        sub     rsp,28h //=>мод	zf=0;cf=0;sf=1) 
+																				nvlddmkm+0x2f1217:        cmp     dl,20h  //=>мод	zf=1;cf=0;sf=0) //dl=20 - далее сраб переход   (je nvlddmkm+0x2f122d [br=1])
+																				nvlddmkm+0x2f1234:	lea     eax,[rcx-1]	\\немод rax=1f (zf=1;cf=0;sf=0)
+																				nvlddmkm+0x2f1238:      and     edx,1Fh         \\немод rdx=0  (zf=1;cf=0;sf=0)
+																				nvlddmkm+0x2f123b:        add     eax,edx //=>мод	zf=0;cf=0;sf=0)  \\немод rdx=0  (zf=0;cf=0;sf=0)
+																				nvlddmkm+0x2f123d:        sar     eax,5   //=>мод	zf=1;cf=1;sf=0)  \\немод rax=0  (zf=1;cf=1;sf=0)
+																				nvlddmkm+0x2f1240:        inc     al 	  //=>мод	zf=0;cf=1;sf=0)  \\немод rax=1  (zf=0;cf=1;sf=0)
+																				nvlddmkm+0x2f1242:	and     ecx,1Fh	  //=>мод	zf=1;cf=0;sf=0;  rcx=0 rax=1	\\немод	zf=1;cf=0;sf=0;  rcx=0 rax=1
+																				nvlddmkm+0x2f1245:       mov     byte ptr [r9+1],al                                    \\немод	zf=1;cf=0;sf=0;  rcx=0 rax=1       [r9+1]=01
+																				nvlddmkm+0x2f124d: jne  nvlddmkm+0x2f125  //=>мод	zf=0;cf=0;sf=0; [br=0] далее FF \\немод также FF
+																				nvlddmkm+0x2f1264:          test    r8,r8     \\немод r8=0  ;jne  nvlddmkm+0x2f1272[br=0] ; cl=78
+																				nvlddmkm+0x2f126d:     jmp     nvlddmkm+0x2f106c		\\nomod [br=1]
+																				nvlddmkm+0x2f1073:     je      nvlddmkm+0x2f108f		\\nomod [br=0]
+																				nvlddmkm+0x2f107a:        jbe     nvlddmkm+0x2f108b		\\nomod [br=0]
+																				nvlddmkm+0x2f1089:	jb      nvlddmkm+0x2f107c		\\nomod [br=0]
+																				nvlddmkm+0x2f108d:	jmp     nvlddmkm+0x2f1099		\\nomod [br=1]
+																				nvlddmkm+0x2f109d:              ret				\\nomod [br=1]
+																		nvlddmkm+0x2c5d8c:      call    nvlddmkm+0x2c4c98    		//mod=0		\\nomod rax=0
+																	nvlddmkm+0x5ff343:      call    nvlddmkm+0x6d4654
+																	--------nvlddmkm+0x6d4654-----to check  [rbx+1A8h]?
+																					call    qword ptr [rbx+1A8h] ? 
+																		nvlddmkm+0x6d46cc:      call    nvlddmkm+0x6d5eec	4444				\\*nomod from 20 ff 00 00 sets 20 00 00 00
+															4444			--------nvlddmkm+0x6d5eec-------
+															osMemSet			nvlddmkm+0x6d5f2c:      call    nvlddmkm+0x753100
+															vbiosReadStructure()		nvlddmkm+0x6d5f53:   call    qword ptr [rsi+1D8h]=call nvlddmkm+0x3388fc	//mod ok
+															vbiosReadStructure()		nvlddmkm+0x6d5f9f:   call    qword ptr [rsi+1D8h]=call nvlddmkm+0x3388fc	//mod ok
+															vbiosReadStructure()		nvlddmkm+0x6d5fef:   call    qword ptr [rsi+1D8h]=call nvlddmkm+0x3388fc	//mod ok
+																			nvlddmkm+0x6d6011:   mov     dl,3						//mod dl=3
+																			nvlddmkm+0x6d603f:     call    nvlddmkm+0x6d60fc 		        	\\*nomod from 20 ff 00 00 sets 20 00 00 00	
+																				nvlddmkm+0x6d6254:call qword ptr[rax+228h]=call nvlddmkm+0x612b80    // mod rax=ffff990f0c2db001
+																				nvlddmkm+0x6d6306:call qword ptr[rax+220h]=call nvlddmkm+0x6123d4	// mod rax=4
+																				nvlddmkm+0x6d6368:call qword ptr[rax+238h]=call nvlddmkm+0x612a88	// mod rax=40 -->ИДЁМ на ВЫХОД
+																					nvlddmkm+0x612ab7:   call    qword ptr [rax+248h]=call nvlddmkm+0x612984
+																						nvlddmkm+0x6129cd:    test    eax,1838h	  //1838h=NV_PBUS_PCI_NV_14
+ 																						nvlddmkm+0x6129ea:	call    qword ptr [rbp+6A8h]=nvlddmkm+0x34c6f0
+
+																			
+																				nvlddmkm+0x6d63d5:	call    qword ptr [rax+60h]=nvlddmkm+0x2c5278	\\*nomod from 20 ff 00 00 sets 20 00 00 00	
+																					nvlddmkm+0x2c52c4:       mov     byte ptr [r9+19h],cl (cl=0)		\\*nomod from 20 ff 00 00 sets 20 00 00 00	
+
+	
+																	nvlddmkm+0x5ff367:  cmp     byte ptr [rdi+7A1h],0FFh	 [mod =ff] 			***rdi=ffffe50ff6d50000***	 у немода rdi+7A1=  00 00 00 00 00 00 00 ff ff 00 ff 00 00 00 00 00
+																	nvlddmkm+0x5ff36e:  je      nvlddmkm+0x5ff453  [mod br=1] => rax=56
+
+  
+																nvlddmkm+0x6bc8e8:	call    qword ptr [rbx+2C0h]= nvlddmkm+0x6015d0 //немод возвр rax=0
+															nvlddmkm+0x581607:        cmp     eax,56h  [мод: eax=56; br=1] 							//эта точка только мод
+															nvlddmkm+0x581641: 	call    qword ptr [rax+6F8h]=call nvlddmkm+0x3384e0  //мод возвр.rax=30383000		//эта точка только мод
+										osReadRegistryDword 			nvlddmkm+0x581668: 	call    nvlddmkm+0x22638c  //мод возвр = ffff //средний переход ниже			//эта точка только мод
+															nvlddmkm+0x581694:    call    qword ptr [rbx+2E8h]= nvlddmkm+0x5ab8c0 //мод возвр rax=56			//эта точка только мод
+															nvlddmkm+0x5816a0:   call    qword ptr [rbx+210h]=сall nvlddmkm+0x5ff13c  //мод возвр = ffff 			//эта точка только мод
+					<-циклик
+
+
+								osdl.c:902	vpStatus = nvDlGetRegistryParameters			nvlddmkm+0x1e59d1	call    nvlddmkm+0x122220  // S.e.s.s.i.o.n.\.R.m.R.C.P.r.e.v.D.r.i.v.e.r.V.e.r.s.i.o.n  возвр 57
+				дальше пока всё!!!
+
+
+                       objvbios.c:1756 osReadRegistryBinary(.."vbios"	        vlddmkm+0x33573f:      call    nvlddmkm+0x1e92b8 //мод крашится на этой функции
+			osdl.c:942 _osReadRegistryBinary   c арг "vbios"		nvlddmkm+0x1e92d6:      call    nvlddmkm+0x1e5914 //мод крашится на этой функции
+			 osdl.c:902	nvDlGetRegistryParameters()				nvlddmkm+0x1e59d1:      call    nvlddmkm+0x122220 результат не мода [al=7A], а мода [al=57] и r9 должен тоже быть 7A
+			   nvlDispLib.cpp:1515	nvlGetRegistryParameters()				nvlddmkm+0x1222c9:    call    nvlddmkm+0x12286c -после этого кола у не мода [al=7A]
+														nvlddmkm+0x122942:        test    esi,esi - у не мода rsi не равен нулю и далее усл. не проходит
+
+											3	nvlddmkm+0x1e59d6:      cmp     eax,7Ah //проверка на 7A
+
+									      4 nvlddmkm+0x335780:      call    nvlddmkm+0x1e9298 //идет копирование биоса по адресу в регистре rsi
+											nvlddmkm+0x1e59d1: call    nvlddmkm+0x122220 //заполнился rsi на моде работает если в п.6раз в 1м разе  изменить zf на 1
+
+			0.0     nvlddmkm!nvDumpConfig+0xa86c88	- Точка входа в драйвер для 417.35 
+			0.1 	Получаем базовый адрес(БА) РЕГистров ГПУ по команде  nvlddmkm+0x1295c7: call qword ptr [nvlddmkm+0x774508] из rax, он круглый ,например БА_РЕГ=rax=ffffc178c9400000, 
+				Область памяти IMGROM= БА_РЕГ+300000, Контроль успеха запуска в п.5(см.ниже проверяется по наличию значения 30000 на немоде) по БА_РЕГ+13718c  //на моде почемуто только 02
+			p106mod->Анализ сообщений [rsp+40h] при  nvlddmkm+0x1e59d1: call  nvlddmkm+0x122220 до RmInitNvHal()
+				O.v.e.r.r.i.d.e.G.p.u.I.n.i.t...			57
+				R.M.5.8.0.3.1.2.					57
+			0.5	1й вызов osDevReadReg032() nvlddmkm+0x1e7848  узнаем адрес РЕГИСТРов ГПУ по [r8], в частности регистр запуска карты [r8] + 2240c
+			1	([rdx+830h]) +  (6_раз je 1й контр сумы  nvlddmkm+0x33814a)
+				S.e.s.s.i.o.n.\.v.b.i.o.s.				57
+				([rdx+830h])
+			2	(2ая контрольная сумма VerifyChecksum() (nvlddmkm+0x334fc9: neg cl) от функции nvlddmkm+0x1e2f0f->nvlddmkm+0x333d78->nvlddmkm+0x334be0)
+				(2ая контрольная сумма VerifyChecksum() (nvlddmkm+0x334fc9: neg cl) от функции nvlddmkm+0x1e2f0f->nvlddmkm+0x334330->nvlddmkm+0x334be0)
+				([rdx+830h])
+				(3ая контрольная сумма _vbiosCalcChecksum32() (nvlddmkm+0x335d8c [r8=c862b99 мод]  [r8=c862b99 немод])
+				r.o.m.O.v.e.r.r.i.d.e.0.0				57
+			3	if(osMemCmp(pDecrypt, pHash, NV_HASH_SIGNATURE_SIZE_BYTE) != 0) nvlddmkm+0x4a6d6a:	call    nvlddmkm+0x1d8298 : 	ЭТО точка перед сравнением (osMemCmp(...)) Хэшей: оригинального расшифрованного  pDecrypt=[rcx]=6e 58 8d c4 ab 23 2a cd 7b 9e 80 e5 d2 09 bd bc  и вычисленного  pHash  = [rdx]=92 3f de 5a 3d 78 ac 2c 8e 4c f6 6e ec ef 76 8d 
+				M.u.t.u.a.l.l.y.E.x.D.e.v.s				57
+			p106mod->Анализ сообщений [rsp+40h]  при call  nvlddmkm+0x122220 после RmInitNvHal() точка 5 nvlddmkm+0x1e3c91
+				(bifReadGpuConfigReg_HAL(...) nvlddmkm+0x1e3d39: call    nvlddmkm+0x24062c) ok
+				R.m.N.V.I.F.F.u.n.c.t.i.o.n.s...NVRM.				57
+                        30000   pmuStartCpu_GM200(){nvlddmkm+0x43c830; nvlddmkm+0x43c866 rax=БА_РЕГ+13718c вместо 02 00 00 00 02 00 00 03 40 50 df ba 00 00 СТАНОВИТСЯ 00 00 03 00 03 00 00 00 40 50 df ba 03 00
+			4        if (!GPU_IS_DEVICE_INIT_COMPLETED(pGpu))  nvlddmkm+0x33ac69:  	call    qword ptr [rsi+7E0h] =  nvlddmkm+0x27f414  //возвр rax=0 надо поставить rax=2
+				N.V.I.F.0.0.0.0.0.0.0.1.0.0.0.0.0.0.0.0				57
+				S.e.s.s.i.o.n.\.R.m.R.C.P.r.e.v.D.r.i.v.e.r.V.e.r.s.i.o.n	57
+			       
+                5       rsi=3  nvlddmkm+0x20b9bb:  call    qword ptr [rax+0A0h]      rsi=3!
+				nvlddmkm+0x6490d8      call    qword ptr [rax+0A8h]=
+				 nvlddmkm+0x612f71    call    qword ptr [rbx+428h]
+				  nvlddmkm+0x61722e	  call    qword ptr [r14+660h]
+				   nvlddmkm+0x3a7351   qword ptr [rax]=call nvlddmkm+0x69218c
+смотреть на точке nvlddmkm+0x1e7848 значенеи по адресу в регистре [r8] = ffffc178c9400000 + 13718c	//mod 02 00 00 00 02 00 00 03 40 50 df ba 00 00 |  00 08 40 50 df ba 40 50 df ba 40 50 df ba  
+												     \\nomod  00 00 03 00 03 00 00 00 40 50 df ba 03 00 |  00 08 40 50 df ba 40 50 df ba 40 50 df ba  //
+				    nvlddmkm+0x6921c7	   call    qword ptr [rax+20h]=nvlddmkm+0x6952c8  //рез-тат 40								\\карта немода памяти по [rcx+r10*8]:
+	     ----перед вызовом нижеслед. ф-ции  \\nomod: rax=ffffc982bc184330;rbx=0;rcx=fffff80218be9590;rdx=13710e;dl=e;r8=f;r9=30000;r10=fffff802188639c0;r11=ffffda8553737e00\\03 00 00 17 02 00 00 02 03 00 00 17 02 00 00 01  
+		НАЙТИ		     nvlddmkm+0x6953ad:     call    nvlddmkm+0x695130   //mod return 0    \\nomod rax=3000b							\\03 00 00 17 02 00 00 02 03 00 00 17 02 00 00 03 
+					nvlddmkm+0x695130:      xor     r11b,r11b                         	\\nomod r11=ffffee89713e1e00					\\03 00 00 17 02 00 00 04 03 00 00 17 02 00 00 05
+					nvlddmkm+0x695133:      test    dl,dl ; je      nvlddmkm+0x695151 	\\nomod[br=0]							\\03 00 00 17 02 00 00 06 03 00 00 17 02 00 00 07
+					nvlddmkm+0x69513b: 	mov     eax,dword ptr [rcx+r10*8]    	  	\\nomod [rcx+r10*8]=03 00 00 17 02; rax = 17000003		\\03 00 03 10 00 00 00 00 03 00 03 10 00 00 01 00 
+ 								and     eax,r9d				  	\\nomod eax=0							\\03 00 03 10 00 00 02 00 03 00 03 10 00 00 03 00
+					nvlddmkm+0x695142:      cmp     eax,dword ptr [rcx+r10*8+4]; je[br=0]	\\nomod [rcx+r10*8+4] = 02 					\\03 01 00 10 03 00 00 00 03 01 00 10 03 01 00 00
+					nvlddmkm+0x695149:      inc     r11b;					\\nomod r11=ffffee89713e1e01					\\00 00 00 40 00 00 00 00 00 00 00 40 00 00 00 40
+					nvlddmkm+0x69514f:      jb      nvlddmkm+0x695137			\\ [br=1]  идем на новый цикл пока r11b=01 не станет dl=0е 
+					nvlddmkm+0x695155:      mov     al,r11b					\\немод: был rax=3000, добавили младшие биты из r11b=b стал rax=30000b 
+				     nvlddmkm+0x6953c1:     jmp     nvlddmkm+0x696670  //на моде делается этот jmp перед ret \\nomod same
+				     nvlddmkm+0x6966b6:     cmp     bpl,byte ptr [rcx+98h]  \\nomod [rcx+98h]=0eh
+				    nvlddmkm+0x6921ef      call    nvlddmkm+0x693058    //мод обходит эту функцию
+				     nvlddmkm+0x6930ca    or      dword ptr [rbx+28h],1        \\тут записывается ЕДИНИЦА по адресу  rbx+28h, которая проверяется ниже на следующем этапе rsi=4
+
+выяснить что такое call    nvlddmkm+0x68d628 
+
+		6	rsi=4  nvlddmkm+0x20b9bb:  call    qword ptr [rax+0A0h]      rsi=4!
+				nvlddmkm+0x6490d8:    	call    qword ptr [rax+0A8h] = nvlddmkm+0x2d5a14
+				 nvlddmkm+0x2d5a1b:  jmp     qword ptr [rax+470h]=nvlddmkm+0x58158c
+				  nvlddmkm+0x5815f8:      call    nvlddmkm+0x6bc8a8
+				   nvlddmkm+0x6bc8d8:	call    qword ptr [rbx+2A0h]= nvlddmkm+0x5ff2c0 
+				    nvlddmkm+0x5ff343:      call    nvlddmkm+0x6d4654
+                                     nvlddmkm+0x6d46cc:      call    nvlddmkm+0x6d5eec
+				      nvlddmkm+0x6d603f:     call    nvlddmkm+0x6d60fc  
+				       nvlddmkm+0x6d611f:      mov     r15,rcx  //см rcx!
+				       nvlddmkm+0x6d6368:      call qword ptr[rax+238h]=call nvlddmkm+0x612a88  //см rcx
+ 					nvlddmkm+0x6129b4:      mov     rdi,rcx		//см rcx				//старое см. r8+7a1
+					nvlddmkm+0x6129e7:      mov     rcx,rdi		//см rdi
+					nvlddmkm+0x6129ea:	call    qword ptr [rbp+6A8h]=nvlddmkm+0x34c6f0
+						nvlddmkm+0x34c70d:  mov     r10,qword ptr [rcx+2038h]  ;//см [rcx+2038h] и rcx
+						nvlddmkm+0x34c7a6: mov     rdx,r10 		//см.r10
+ 						nvlddmkm+0x34c7a9: call    qword ptr [r10+660h]= call nvlddmkm+0x3a71ac
+ 							nvlddmkm+0x3a71d1	mov     rdi,rdx				//см rdx,rdi
+ 							nvlddmkm+0x3a726e	mov     rcx,qword ptr [rdi+0ED0h]       //см rdi,rcx  \\rcx = ffff988156ab3000+ED0h = ffff988156d66000
+							nvlddmkm+0x3a7278:   mov     r12,qword ptr [rcx+rbp*8+5F78h] 	//см  r12    \\ r12=ffff988156d66000 +12*8+5f78 = FFFF988156D6C008 + 28h = [01]
+							nvlddmkm+0x3a734e:    mov     rcx,r12    			//см  r12 
+						 	nvlddmkm+0x3a7351:   call    qword ptr [rax]= call nvlddmkm+0x69218c  -> 40  look down there  rdi+28h or rcx+28h
+								nvlddmkm+0x6921a0:	test    rcx,rcx \\nomod =  rcx= ffffc98864f171e0
+								nvlddmkm+0x6921b5:  mov     eax,dword ptr [rdi+28h]  \\nomod = [01]   rdi это был rcx
+								nvlddmkm+0x6921b8:  test    al,1  	\\nomod = 1
+								------	
+								nvlddmkm+0x6921c7:  call    qword ptr [rax+20h]=call nvlddmkm+0x6952c8   \\немод не доходит
+									nvlddmkm+0x6952f3:      call    nvlddmkm+0x69515c   //mod возвр rax=17030103
+									nvlddmkm+0x69530b:      call    nvlddmkm+0x69515c   //mod возвр rax=17030103  //cf=1 zf=1
+									nvlddmkm+0x69536a:        je      nvlddmkm+0x695398 //[mod br=1]
+									nvlddmkm+0x6953ad:     call    nvlddmkm+0x695130	//mod rax=0  \\немод не доходит
+									nvlddmkm+0x6953c1:     jmp     nvlddmkm+0x696670
+									nvlddmkm+0x696697:	jne     nvlddmkm+0x6966b6  //mod br=1
+									nvlddmkm+0x69673b: 	call    nvlddmkm+0x1f7c68 //mod fails
+
+
+			1050->Анализ сообщений [rsp+40h] при call  nvlddmkm+0x122220 до RmInitNvHal()
+				O.v.e.r.r.i.d.e.G.p.u.I.n.i.t...			57
+				R.M.5.8.0.3.1.2.					57
+				1й вызов osDevReadReg032() nvlddmkm+0x1e7848  узнаем адрес регистров ГПУ по [r8], в частности регистр запуска карты [r8] + 2240c
+				([rdx+830h]) +  (6_раз je 1й контр сумы  nvlddmkm+0x33814a)
+				S.e.s.s.i.o.n.\.v.b.i.o.s
+				([rdx+830h])
+				(2ая контрольная сумма VerifyChecksum() (nvlddmkm+0x334fc9: neg cl))
+				(2ая контрольная сумма VerifyChecksum() (nvlddmkm+0x334fc9: neg cl))
+				([rdx+830h])
+				(3ая контрольная сумма _vbiosCalcChecksum32() (nvlddmkm+0x335d8c [r8=c852b99])
+				r.o.m.O.v.e.r.r.i.d.e.0.0				57
+ 				M.u.t.u.a.l.l.y.E.x.D.e.v.s...				57
+			1050->Анализ сообщений [rsp+40h] при call  nvlddmkm+0x122220 после RmInitNvHal() на 1050 без  кэширования:
+				(bifReadGpuConfigReg_HAL(...)nvlddmkm+0x1e3d39) ok
+				R.m.N.V.I.F.F.u.n.c.t.i.o.n.s...NVRM.				57 
+						при первом старте выставляется 02 по[r8]+rax*4=[r8]+2240C
+				N.V.I.F.0.0.0.0.0.0.0.1.0.0.0.0.0.0.0.0				57
+ 				S.e.s.s.i.o.n.\.R.m.R.C.P.r.e.v.D.r.i.v.e.r.V.e.r.s.i.o.n
+				R.m.B.l.a.c.k.L.i.s.t.A.d.d.r.e.s.s.e.s  			57
+				O.v.e.r.r.i.d.e.E.d.i.d.F.l.a.g.s.0				57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.0.1.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.0.2.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.0.4.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.0.8.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.1.0.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				S.t.a.t.i.c. .E.D.I.D. .0.x.0.0.0.0.2.0.0.0....ws....@e"P....D.r.i.v.e.r.I.n.s.t.a.l.l.e.d  		57
+				N.V.I.F.0.0.0.0.0.0.0.B.0.0.0.0.0.0.0.1.....			57	  ***** CNvLAdapter* ffffd70f702e7000 -> DriverModel is 0x2500 ******
+				N.V.I.F.0.0.0.0.0.0.0.B.0.0.0.0.0.0.0.1.....			57
+
+
+
+			Анализ последовательности результатов al= после всех вызовов функции  call  nvlddmkm+0x122220:
+			мод  		  al= 57 57 (6раз je)  57
+			ориг прокеширован al= 57 57 ([rdx+830h]) (6_раз je) 7a 0           0            ([rdx+830h]) 57 57 57 57 7a 0  7a 0  0  0  57 57 57 57 57 57 57 57 57 57
+			ориг некеширован  al= 57 57 ([rdx+830h]) (6_раз je) 57 ([rdx+830h])([rdx+830h]) 57           57 57 57 57 57 57 57 57 57 57 57 57 57 57
+
+			objvbios.c:1831 if (status != NV_OK)	Срабатывает это условие с выводом 	 NV_PRINTF(LEVEL_WARNING,"Failed to remove IFR section from VBIOS image, status=%u\n"	
+			objvbios.c:1839 status=vbiosLocateExpansionRomImages   //nvlddmkm+0x33573f: call    nvlddmkm+0x1e92b8  похоже неудачно [eax=ffff]
+			objvbios.c:1840 if (status != NV_OK)	Срабатывает это условие с выводом 	
+
+								nvlddmkm+0x1e3c96: je      nvlddmkm+0x1e3ca6  [br=0] видимо  не успех и далее очистка
+		?gpumgrDetachGpu()?				nvlddmkm+0x1e3c9c: call    nvlddmkm+0x2023b4
+		osinit.c:2018 status = RmSwapInit(pGpu);      //nvlddmkm+0x1e3d08  call nvlddmkm+0x2353e8
+		osinit.c:2049 pDeviceInfo->ulGpuID=data>>16;  //nvlddmkm+0x1e3d55		shr     eax,10h
+
+
+ !25.10.2022 Вычислить адреса нижеследующих функций и Проверить в них блокировку патченного биоса (VBIOS или SBIOS):
+ nvlInit.cpp:1074: checkMobile()
+ nvlInit.cpp:1110:checkSBIOSForValidCoprocCookie()
+ nvlInit.cpp:1111:checkCoprocOverrides()
+ nvlInit.cpp:1112:checkGpuIsValidForCoprocButNoUArchitectureCheck()
+ nvlInit.cpp:1115 if( getCoprocApprovalStatus()!= NVL_APPROVAL_STATUS_OK)
+ !и дойти до этого пункта:
+ nvlInit.cpp:1124: pickDriverModel()
+
+nvlInit.cpp:1062  if (!getArchitectureInfo())
+nvlAdapter.cpp:5135  bool CNvLBaseAdapter::getArchitectureInfo()
+nvlAdapter.cpp:5195 if (!rmControl(m_ahSubD
+=====================================================
+
+nvlddmkm+0xe04f1 (уже всё заполнено по адресу nvlddmkm!nvDumpConfig+0x494a8)
+nvlddmkm+0x197644 (AddDevice?) (уже всё заполнено по адресу nvlddmkm!nvDumpConfig+0x494a8)
+nvlddmkm+0x19778c  ?
+dxgkrnl!DpiDxgkDdiAddDevice+0x40
+nvlddmkm!nvDumpConfig+0x22706c (NvAddDevice) (уже всё заполнено по адресу nvlddmkm!nvDumpConfig+0x494a8)
+nvlddmkm!nvDumpConfig+0x22719f 	-> call    nvlddmkm!nvDumpConfig+0x231a2c
+	nvlddmkm!nvDumpConfig+0x231a50 ->  call    nvlddmkm!nvDumpConfig+0x231c98 	[rbp-28] = 1C09
+ 		nvlddmkm!nvDumpConfig+0x231d3d -> call    nvlddmkm+0x19d294		r8=1C09
+ 			nvlddmkm+0x19d4d1	->  call    nvlddmkm+0x19cff0   eax=1C09
+			  nvlddmkm+0x19cff0:
+ 			   nvlddmkm+0x19d04a	lea     r10,[nvlddmkm!nvDumpConfig+0x494a8] - нач адр вид.инфо
+			   nvlddmkm+0x19d098	movzx eax,word ptr [r10+r13+0D6h] r10 нач адр вид.инфо
+				
+
+		
+
+
+nvdm.cpp:2854: 		NvDM_StartDevice( {
+nvlAdapter.cpp:2842 	 startDevice(...){
+nvlAdapter.cpp:2926        Status = setupAdapter(bUseOsPostDeviceAsPrimary, displayHandoffInfo.bPostDevice);
+nvlInit.cpp:855			NTSTATUS CNvLAdapter::setupAdapter(
+nvlInit.cpp:947				     PF("Device Registry Path = '%s'", ANSIRegistryPath.Buffer);
+
+nvlAdapter.cpp: 1704: pickDriverModel(...){
+nvlAdapter.cpp: 1764:	PF(" ***** CNvLAdapter* %p -> DriverModel is 0x%x ******", this, m_ulDriverModel);

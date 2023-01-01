@@ -1,0 +1,202 @@
+Таблица адресов вычисленных функций драйвера 417.35
+
+nvlddmkm+0x295f8	LOG()	
+nvlddmkm+0xe20c8	CNvLAdapter::DpGetDeviceInformation()
+nvlddmkm+0xe47ec	m_pAdapter->allocGMMUVirtualMemory()
+nvlddmkm+0xe8064	checkRegistryOverrides()
+nvlddmkm+0xe8600	CNvLBaseAdapter::createAcpiChildNames()
+nvlddmkm+0xe95dc        CNvLBaseAdapter::destroyAcpiChildNames()
+nvlddmkm+0xeb964	CNvLAdapter::lockPexGen2WAR()	
+nvlddmkm+0xf0894 	CNvLAdapter::startDevice()
+
+nvlddmkm+0x1208f0	nvAssert() ; DPF_MODULE(ERROR,...
+nvlddmkm+0x122220 	nvDlGetRegistryParameters()
+nvlddmkm+0x12286c	nvlGetRegistryParameters()
+nvlddmkm+0x122a60	nvlSetRegistryParameters()
+nvlddmkm+0x124b38 	EventRoutine()
+nvlddmkm+0x125f34	startEventThread()
+nvlddmkm+0x127368	CNvLBaseAdapter::buildAccessRanges()
+nvlddmkm+0x12756c	CNvLBaseAdapter::buildDeviceInfo()
+nvlddmkm+0x128064	CNvLBaseAdapter::enableDevice()
+nvlddmkm+0x128114	::getAdapterInfo()
+nvlddmkm+0x128780 	CNvLBaseAdapter::getResourceSize()
+nvlddmkm+0x129578	CNvLBaseAdapter::mapAccessRanges()
+nvlddmkm+0x129c24	CNvLAdapter::setupAdapter()
+nvlddmkm+0x135630       createProcessNotify()
+nvlddmkm+0x1377b4	nvAllocatePoolWithTag()
+nvlddmkm+0x137830	nvFreePoolWithTag()
+nvlddmkm+0x1445f0	VALIDATION_LOG_DPF(..)
+nvlddmkm+0x14a2d8	CNvLAdapter::getDxAdapter()
+nvlddmkm+0x14c7dc	VOID rmAlloc()
+nvlddmkm+0x14ca40	CNvLBaseAdapter::rmAlloc()
+nvlddmkm+0x15006c	VOID rmControl()
+nvlddmkm+0x15026c 	CNvLBaseAdapter::rmControl()
+nvlddmkm+0x150350 	CNvLChannel::rmControl()
+nvlddmkm+0x1525e8	CODE_SEGMENT(PAGE_KMD_CODE) BOOL rmPostNvDevice(U032 deviceReference)
+nvlddmkm+0x1526e4	CNvLBaseAdapter::rmPostNvDevice()
+nvlddmkm+0x153d90	CNvLBaseAdapter::rmSetupNvAdapter()
+nvlddmkm+0x16e890	allocCbcCleanInvalidateWarResources()
+nvlddmkm+0x197644 	NvAddDevice()
+nvlddmkm+0x198b78	NvMgmtDispatchCreateClose()  
+nvlddmkm+0x198c08	NvMgmtDispatchDeviceControl()
+nvlddmkm+0x19a3d4	isTeslaComputeDevice()
+nvlddmkm+0x1d8464	osMemSet()
+nvlddmkm+0x1dba58       Nv04AllocKernel()
+nvlddmkm+0x1dba60	Nv04AllocUser()
+nvlddmkm+0x1dbb30	Nv04ControlKernel()
+nvlddmkm+0x1dbb3c	Nv04ControlUser()
+nvlddmkm+0x1df078	DBG_BREAKPOINT();
+nvlddmkm+0x1e05d0	RM_ASSERT(0);
+nvlddmkm+0x1e1384	_NVIF_FunctionIsSupported()
+nvlddmkm+0x1e2aa4       pSys->setProperty()
+nvlddmkm+0x1e2fd0	RmPostNvDevice()
+nvlddmkm+0x1e3284	RmSetupNvAdapter()
+nvlddmkm+0x1e4ac0	osLoadAttachArgs()	
+nvlddmkm+0x1e5914	_osReadRegistryBinary()
+nvlddmkm+0x1e782c	osDevReadReg008
+nvlddmkm+0x1e7848	osDevReadReg032() (шаг 3)
+nvlddmkm+0x1e7884	osDevWriteReg032() (шаг 3)
+nvlddmkm+0x1e9024	osReadRegistryBinary()
+nvlddmkm+0x1e92b8	osReadRegistryVolatileSize()
+nvlddmkm+0x1e9298 	osReadRegistryVolatile()
+nvlddmkm+0x1e93f8 	osStopTimer()
+nvlddmkm+0x1e9e10       ?osWriteRegistryVolatile()
+nvlddmkm+0x1e9e24	osdlRmSetupNvAdapter()
+nvlddmkm+0x1f6b98	osMemCopy()
+nvlddmkm+0x1f6cb4 	_vbiosReallocateImageBuffer() или osAllocMem() или  portMemAllocNonPaged()
+nvlddmkm+0x1f6db0	portMemFree() или osFreeMem()
+nvlddmkm+0x1f7018	portSyncMutexAcquire()
+nvlddmkm+0x1f711c       portSyncMutexRelease()
+nvlddmkm+0x1f7bf0 	NV_PRINTF(LEVEL_INFO,
+nvlddmkm+0x1f7c3c 	NV_PRINTF(LEVEL_WARNING,
+nvlddmkm+0x1f7c68	NV_PRINTF(LEVEL_ERROR,
+nvlddmkm+0x201bd8       gpumgrAllocGpuInstance()
+nvlddmkm+0x201c2c	gpumgrAttachGpu()
+nvlddmkm+0x202250	gpumgrDestroyDevice()
+nvlddmkm+0x2023b4	?gpumgrDetachGpu()
+nvlddmkm+0x204634	gpumgrRegisterGpuId()
+nvlddmkm+0x2052b0 	GPU_GET_DISP_IFF()
+nvlddmkm+0x205310	GPU_GET_I2C_IFF()
+nvlddmkm+0x205340	GPU_GET_PMGR_IFF()
+nvlddmkm+0x205370	GPU_GET_VBIOS()
+nvlddmkm+0x2053d0	GPU_GET_VBIOS()? GPU_GET_LPWR_IFF ?GPU_GET_PMU()
+nvlddmkm+0x207794	_gpuFindDeviceMapping()					gpu_device_mapping.c
+nvlddmkm+0x207e00 	gpuGetDeviceMapping()=gpuGetDeviceMapping_IMPL()	gpu_device_mapping.c  
+nvlddmkm+0x207f3c	gpuGetEngstate()
+nvlddmkm+0x2087d8	gpuHandleReadRegisterFilter()  	objgpu.c
+nvlddmkm+0x209a4c	gpuIsGpuFullPower_IMPL()  objgpu.c
+nvlddmkm+0x209d3c	gpuPostConstruct()	  objgpu.c
+nvlddmkm+0x20a4e8
+nvlddmkm+0x20a5a4	gpuReadReg008_IMPL()	 objgpu.c  //Читает 1 байт из Reg далее идет  osDevReadReg008 (nvlddmkm+0x1e782c)
+nvlddmkm+0x20a7d8	gpuReadReg032Ex_IMPL()	 objgpu.c // вызывается также через макрос GPU_BUS_CFG_RD32
+nvlddmkm+0x20a834	gpuReadReg032MappingEx_IMPL()		objgpu.c
+nvlddmkm+0x20aa1c	GPU_REG_RD32() 
+nvlddmkm+0x20acb8	gpuRemoveMissingEngines()		objgpu.c
+nvlddmkm+0x20c564	gpuStatePreInit()=gpuStatePreInit_IMPL  objgpu.c	
+nvlddmkm+0x20d6ac	osDevWriteReg032() (шаг 1)
+nvlddmkm+0x20d82c	GPU_REG_WR32() для паскаля
+nvlddmkm+0x20da3c	osDevWriteReg032() (шаг 2)
+nvlddmkm+0x20f840       rmApiLockIsOwner()
+nvlddmkm+0x20f758	rmApiLockAcquire()
+nvlddmkm+0x20f864	rmApiLockRelease()
+nvlddmkm+0x2137f8       threadStateFree()
+nvlddmkm+0x213c20 	threadStateInit()
+nvlddmkm+0x21afac	RMTRACE_USBC1()
+nvlddmkm+0x21b048	RMTRACE_VBIOS()
+nvlddmkm+0x21c534 	rmGpuLockAlloc()
+nvlddmkm+0x21c70c 	rmGpuLockFree()
+nvlddmkm+0x21c8bc	rmGpuLockHide()
+nvlddmkm+0x21c994       rmGpuLockIsOwner()
+nvlddmkm+0x21ca08	rmGpuLocksAcquire()
+nvlddmkm+0x21cad4	rmGpuLocksRelease()
+nvlddmkm+0x22544c	RMTRACE_NVTELEMETRY()
+nvlddmkm+0x22638c	osReadRegistryDword()
+nvlddmkm+0x232e04	getNbsiObjByType()  	nbsi_init.c	
+nvlddmkm+0x2400ec	bifInitGen2LinkUpgradePropIfCapable_GK104() 				bifgk104_gf117.c
+nvlddmkm+0x24062c 	bifReadGpuConfigReg_HAL()  вызывается также через макросы GPU_PCI_CFG_RD_DRF(); GPU_PCI_CFG_RD32()					bifgk104_gf117.c
+nvlddmkm+0x240640	bifReadLinkSpeed_GK104()						bifgk104_gf117.c
+nvlddmkm+0x240fe8  	bifWriteGpuConfigReg_HAL() вызывается также через макросы GPU_PCI_CFG_FLD_WR_DRF_NUM();  GPU_PCI_CFG_FLD_WR_DRF_DEF();GPU_BUS_CFG_WR32	bifgk104_gf117.c
+nvlddmkm+0x2434f0	Заглушка с return 0=NV_OK ; 
+nvlddmkm+0x27c06c	IsGK107MaskRevA01(pGpu)
+nvlddmkm+0x27f414	gpuReadScratch_HAL()=gpuReadScratch_GK104()				gpugf100.c
+nvlddmkm+0x27f5a4	gpuSanityCheckRegisterAccess_HAL()=gpuSanityCheckRegisterAccess_GK104 	gpugf100.c
+nvlddmkm+0x27f39c	gpuPreInit_HAL()=gpuPreInit_GK104()					gpugf100.c		
+nvlddmkm+0x27fa38       gpuWriteScratch_HAL()=gpuWriteScratch_GK104()   			gpugf100.c
+nvlddmkm+0x29d1b0	memGetPhysAddr()
+nvlddmkm+0x2d9430	gpuMutexMgrConstruct()							gpumutex.c
+nvlddmkm+0x2f8b88	instReadVbiosImageFromInst_HAL()
+nvlddmkm+0x2f8c5c	instReadVbiosSizeFromInst_HAL()
+nvlddmkm+0x320410	fbStatePreInitLocked_GK104()						fbgk104.c
+nvlddmkm+0x3340ec	ExtractPciDataExtension()
+nvlddmkm+0x33426c 	VerifyHeaders()
+nvlddmkm+0x3347ec 	initRegistryRomOverride()
+nvlddmkm+0x3349f4	romImgRdByte()
+nvlddmkm+0x334a8c	romImgRdDWord() //читает по 32 бит из видео биоса
+nvlddmkm+0x334b54       romImgRdWord() //читает по 16 бит из видео биоса
+nvlddmkm+0x334be0	validateVbiosImage()
+nvlddmkm+0x3362f8       vbiosGetExpansionRomOffset()
+nvlddmkm+0x336e68	vbiosGetPCIDevId();  //возвр 1с09 или 1с91
+nvlddmkm+0x337de4	vbiosReadImageSizeFromRom() !исправил!
+nvlddmkm+0x338620	vbiosRead8()
+nvlddmkm+0x3385bc	vbiosRead16()
+nvlddmkm+0x3388fc	vbiosReadStructure()
+nvlddmkm+0x338b40       vbiosWrite16()
+nvlddmkm+0x338b68	vbiosWrite8()
+nvlddmkm+0x33af48	DevinitPmuPrepareSysmemBuffers()
+nvlddmkm+0x48d0b4	pmgrRomAddrAdjust_HAL()
+nvlddmkm+0x4a4890	 _vbiosRemoveImageIFR()
+nvlddmkm+0x4a725c	vbiosProcessSecurity_HAL()
+nvlddmkm+0x53486c	gpuInitGC6Capabilities_IMPL()	gpupower.c
+nvlddmkm+0x534dac	gpuInitOptimusSettings_IMPL()	gpupower.c
+nvlddmkm+0x5710a8	bifInitBiosData()		objbif.c
+nvlddmkm+0x572ab4	bifStateInitLocked_IMPL()	objbif.c
+nvlddmkm+0x5bbc04	vbiosDumpCallbackRegister()
+nvlddmkm+0x5c1458	engstateStatePreInitLocked() = inforomStatePreInitLocked_IMPL()	 inforom.c
+nvlddmkm+0x6130f4	pmgrStatePreInitLocked_IMPL	objpmgr.c
+nvlddmkm+0x649070	engstateStateInit_IMPL		objengstate.c
+nvlddmkm+0x649104	engstateStatePreInit_IMPL	objengstate.c
+nvlddmkm+0x670388	vbiosPrepareBuffersForFalconUcode()
+nvlddmkm+0x677d94	initBITData()		core5cnm.c:243 	!уточнил!
+nvlddmkm+0x677bfc	VerifyBITVersion() 	core5cnm.c:43   !уточнил!
+nvlddmkm+0x67ad84	vbiosApplyROMPacks()
+nvlddmkm+0x67ae54       vbiosGetPCIBlockOffset() 
+nvlddmkm+0x67b2fc       vbiosROMPackProcessImages()
+nvlddmkm+0x67af04	vbiosGetROMPackPtrOffset()
+nvlddmkm+0x6a3810	getVbiosSecurityBlock()			vbiossecurity.c
+nvlddmkm+0x6e1ab4	inforomGetFsImageParams()		ifrfsadapter.c
+nvlddmkm+0x6e2084	inforomConstructInforomFsAdapter()	ifrfsadapter.c
+
+nvlddmkm+0x753100 	portMemSet()
+nvlddmkm+0x753200 	memcpy()
+nvlddmkm+0x773494	CNvLBaseAdapter::getWinServices()::getSystemMemorySize()
+nvlddmkm+0x7949a0	CNvLBaseAdapter::getWinServices()
+
+
+
+
+nvlddmkm!nvDumpConfig+0x20615c	
+nvlddmkm!nvDumpConfig+0x20b148		pContext->setContextType()
+nvlddmkm!nvDumpConfig+0x20c128 		pDevice->allocGMMUVirtualAddress()
+nvlddmkm!nvDumpConfig+0x22706c		NvDM_AddDevice()			//1й адрес глобальных колбэков
+nvlddmkm!nvDumpConfig+0x2298b0		NvDM_StartDevice()			//4й адрес глобальных колбэков
+nvlddmkm!nvDumpConfig+0x4bdc8		NvLDDM_UpdateActiveVidPnPresentPath() 	//54й адрес глобальных колбэков
+nvlddmkm!nvDumpConfig+0x4c028		NvLDDM_SetTimingsFromVidPn() 		//94й адрес глобальных колбэков
+nvlddmkm!nvDumpConfig+0xdacc8		gpumgrCreateDevice()
+
+Адреса модуля PCI:
+pci+1010: pci!PciBusInterface_GetBusData  
+pci+CB30: pci!PciBusInterface_SetBusData
+
+Адреса системных функций виндоса:
+nvlddmkm+0x7740b8	nt!KeSetEvent
+nvlddmkm+0x7743c0	nt!ObfReferenceObject
+nvlddmkm+0x7745d0       nt!RtlUnicodeStringToAnsiString
+nvlddmkm+0x7748b8	nt!RtlInitUnicodeString
+nvlddmkm+0x7740f0 	nt!KeBugCheckEx
+nvlddmkm+0x774260	nt!ZwCloze
+nvlddmkm+0x774408	nt!ZwOpenKey
+nvlddmkm+0x774410	nt!ZwQueryValueKey
+nvlddmkm+0x7745b8	nt!IoOpenDeviceRegistryKey()
+nvlddmkm+0x7748b8	nt!RtlInitUnicodeString()
+
+код 90h это NOP

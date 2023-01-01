@@ -1,0 +1,50 @@
+Адрес 	Значение  	Значение	Адрес в коде	 	Проверка в функции 			Чтение регистра: nvlddmkm+0x1e7848	Запись регистра: nvlddmkm+0x1e7884
+рег-ра	P90cold		1050cold	417.35			Запрос                                              		Функция[запрос]
+------------------------------------------------------------------------------------------------------------------------------------------
+8C1C0 r	130036		110036		nvlddmkm+0x2400f5	[GPU_REG_RD32(pGpu, NV_XP_PL_LCTRL_2(0)=8C1C0)] 		bifgk104_gf100.c:106 bifInitGen2LinkUpgradePropIfCapable_GK104() (проверяется младшая цифра "6" на test 4 ,если цифра>=4 , то PDB_PROP_BIF_ASLM_GEN2_LINK_UPGRADE_ENABLE=NV_TRUE  ( byte ptr [rbx+6ECh],1)
+					nvlddmkm+0x24068f
+      r 130036		130036		nvlddmkm+0x23f263									bifgk104_gf117.c:261 // Check if remote (root/bridge port) supports Gen3
+после каких то манипуляций по регистру 8C1C0 вписывается  120036, что нельзя изменить ручками через дебагер
+8C1C0 w	110036		120036
+
+88088 r	10210040	11010040	nvlddmkm+0x240673	[GPU_BUS_CFG_RD32(NV_XVE_LINK_CONTROL_STATUS=0x88000+0x88)]  	bifgk104_gf100.c:119	bifReadLinkSpeed_GK104() //далее на командах [shr eax,10; and eax,0F] из числа 10210040=>1021=>1,а из числа 11010040=>1101=>1
+      r					nvlddmkm+0x23f4f5
+      r	10210040			nvlddmkm+0x24094b // Get the current pcie speed and width info, quit if this fails	bifgk104_gf117.c:1207 	bifSetBusSpeed_GK104 //width[shr eax,14 (10210040->102); and eax,3F(102->2)]=2  //speed [shr eax,10 (10210040->1021); and eax,0F(1021->1)] =1
+
+						
+88150 r	e0000195	e0000195 	nvlddmkm+0x2ef9b6	[GPU_BUS_CFG_RD32(NV_XVE_PRIV_XV_0 = 0x88000+0x150)] 		bifgk104_gf100.c:176 bifInit_GK104() //Save the initial  ASPM L0s/L1 mask value
+88150 r	e0000195			nvlddmkm+0x33e0d1	[bifReadGpuConfigReg_HAL(pGpu, pBif, NV_XVE_PRIV_XV_0,]		bifgk104.c:917 bifEnterDisableAspmWar_GK104()
+					 
+8c300 r	40a00c0		40a00c0		nvlddmkm+0x45a42f	[GPU_REG_RD32(pGpu, NV_XP_PL_CYA_1(0)= 8c300]			bifEnableHigherProtocolsAndSpeeds_GP100() //Краткий запрос, а далее вызов ф-ции bifEnableHigherProtocolsAndSpeeds_GK107()
+8c300 w 40a00c0		40a00c0		nvlddmkm+0x45a44a	[GPU_REG_WR32(pGpu, NV_XP_PL_CYA_1(0)= 8c300]			bifEnableHigherProtocolsAndSpeeds_GP100() 
+	
+88610	00000000	1001		nvlddmkm+0x23f005 	[GPU_REG_RD32(..DEVICE_BASE(NV_PCFG)=0x88000 +			bifEnableHigherProtocolsAndSpeeds_GK104() // Check if VBIOS supports Gen2
+								+ NV_XVE_VSEC_NVIDIA_SPECIFIC_FEATURES_HIERARCHY=0x610);
+1373a0	a		a		nvlddmkm+0x4a353d	NV_PTRIM_SYS_JTAGINTFC=1373a0 					стек ф-ции bifVerifyGen3SpeedFuseSettings_HAL() и fuseGetStateByOption_HAL()
+21250	1		0		nvlddmkm+0x4a23c4	NV_FUSE_OPT_DISABLE_GEN3_SPEED=21250				стек ф-ции bifVerifyGen3SpeedFuseSettings_HAL()
+2157c	1		0		nvlddmkm+0x4a23c4	NV_FUSE_OPT_PCIE_BOOT_GEN23_DISABLE=2157c			стек ф-ции fuseGetStateByOption_HAL()
+
+2241c	81		81	(1050)	nvlddmkm+0x23f37e	[GPU_REG_RD32(pGpu, NV_PTOP_FS4=2141c)]				bifgk104_gf117.c:309 bifEnableHigherProtocolsAndSpeeds_GK104() //Setup PCIe registers for correct operational speeds для 1050
+				(p90)	nvlddmkm+0x23f323									bifgk104_gf117.c:352 bifEnableHigherProtocolsAndSpeeds_GK104() //Setup PCIe registers for correct operational speeds для P90
+
+8841c	340500		340500	(1050)	nvlddmkm+0x23f37e	[GPU_REG_RD32(pGpu, DEVICE_BASE(NV_PCFG)+NV_XVE_PRIV_MISC_1)]	bifgk104_gf117.c:317  bifEnableHigherProtocolsAndSpeeds_GK104() //Setup PCIe registers for correct operational speeds для 1050			
+				(p90)	nvlddmkm+0x23f35a									bifgk104_gf117.c:360  bifEnableHigherProtocolsAndSpeeds_GK104() //Setup PCIe registers for correct operational speeds для p90			
+
+880A8	p100=1		10002		nvlddmkm+0x23f3e5	[GPU_REG_RD32(DEVICE_BASE(NV_PCFG)+NV_XVE_LINK_CONTROL_STATUS_2)]  bifgk104_gf117.c:336 bifEnableHigherProtocolsAndSpeeds_GK104() //NV_XVE_LINK_CONTROL_STATUS_2_TARGET_LINK_SPEED should remain at Gen3.
+
+8C2C0 r	60711b3		60711b3		nvlddmkm+0x23f486	[GPU_REG_RD32(pGpu, NV_XP_PL_CYA_0 = 8C2C0]			bifgk104_gf117.c:389  bifEnableHigherProtocolsAndSpeeds_GK104() // Set PL_CYA_0 to allow Gen3 if supported, and disallow otherwise
+8C2C0 w	68711b3		68711b3
+
+8C040 r 20085800	80085800	nvlddmkm+0x23f4de	[GPU_REG_RD32(pGpu, NV_XP_PL_LINK_CONFIG_0(0)=8C040)]	 	bifgk104_gf117.c:409 bifEnableHigherProtocolsAndSpeeds_GK104() // Set target link speed equal to current link speed
+8C040 w 20085800	80085800	nvlddmkm+0x23f53b	[GPU_REG_WR32---//---]
+8C040 r 20085800			nvlddmkm+0x23e10f
+
+8807c r 8de1 		12c8de1 	nvlddmkm+0x23dcec	GPU_BUS_CFG_RD32(pGpu, pBif, NV_XVE_DEVICE_CAPABILITY=8807c  	bifgk104_gf117.c:573 bifLoadHw_GK104() читаем, для выяснения наличия поля _EXTENDED_TAG_FIELD_SIZE, чтобы потом вписать его признак по регистру 88080
+
+88080 r 2117		2927		nvlddmkm+0x23dd1c	GPU_BUS_CFG_RD32(pGpu,pBif,NV_XVE_DEVICE_CONTROL_STATUS=88080)	bifgk104_gf117.c:582 	_bifLoadHw_GK104() читаем, чтобы потом записать признак  наличия поля _EXTENDED_TAG_FIELD_SIZE (=1) обратно
+88080 w 2117				nvlddmkm+0x23dd1c									bifgk104_gf117.c:582 	_bifLoadHw_GK104() читаем, чтобы потом записать признак  наличия поля _EXTENDED_TAG_FIELD_SIZE (=1) обратно
+
+8b980 r 200a043				nvlddmkm+0x45b97f		?							читается в процессе работы фукции bifgk104.c:917 bifEnterDisableAspmWar_GK104()
+
+8B8C0 r	640007				nvlddmkm+0x23dfd2	[GPU_REG_RD32(pGpu, NV_XP_DL_MGR_0(0));]			bifgk104_gf117.c:1428 bifChangeBusSpeed_GK104()// Set safe timings
+8B8C0 w	640007				nvlddmkm+0x23dffe	[GPU_REG_WR32(pGpu, NV_XP_DL_MGR_0(0), tempRegVal);]		bifgk104_gf117.c:1431 bifChangeBusSpeed_GK104()// Set safe timings
